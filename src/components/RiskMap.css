@@ -1,0 +1,39 @@
+.risk-map {
+  background: #f7f7f7;
+  border: 1px solid #eee;
+  border-radius: 10px;
+  padding: 16px;
+}
+
+.risk-map-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.risk-map-legend {
+  font-size: 10.5px;
+  font-weight: 400;
+  color: #999;
+}
+
+.risk-map-canvas {
+  background: #1f1f1f;
+  border-radius: 8px;
+  height: 250px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 24px;
+}
+
+.risk-map-canvas p {
+  color: #777;
+  font-size: 12.5px;
+  text-align: center;
+  margin: 0;
+  line-height: 1.6;
+}

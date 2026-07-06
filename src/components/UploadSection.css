@@ -1,0 +1,41 @@
+.upload-section{
+    background: #616161;
+    border-radius: 10px;
+    padding: 32px 20px;
+    text-align: center;
+    margin: 20px 24px;
+}
+
+.upload-section h2{
+    color: #fff;
+    margin: 0 0 6px;
+}
+
+.upload-section p{
+    color: #d8d8d8;
+    font-size: 13px;
+    margin: 0 0 16px;
+}
+
+.upload-controls{
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+}
+
+.upload-controls select, .browse-button{
+    font-size: 13px;
+    padding: 6px 14px;
+    border-radius: 4px;
+    border: 1px solid #888;
+    cursor: pointer;
+}
+
+.classify-button{
+    background: #25272A;
+    color: #F0B631;
+    border: 1px solid #25272A;
+    border-radius: 4px;
+    padding: 6px 14px; 
+    cursor: pointer;
+}

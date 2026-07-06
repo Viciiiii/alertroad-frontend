@@ -1,0 +1,29 @@
+.dashboard-content {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.dashboard-hero{
+    text-align: center;
+    padding: 24px 0 0;
+}
+
+.dashboard-hero h2{
+    font-size: 24px;
+    margin-bottom: 0 0 8px;
+}
+
+.dashboard-hero p{
+    font-size: 13.5px;
+    color: #666;
+    max-width: 500px;
+    margin: 0 auto;
+    line-height: 1.6;
+}
+
+.dashboard-panels{
+    display: grid;
+    grid-template-columns: .7fr .4fr;
+    gap: 25px;
+}
