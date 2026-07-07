@@ -11,6 +11,7 @@ function UploadSection({
   selectedCameraId,
   onSelectCamera,
   onAddCamera,
+  onDeleteCamera,
 }) {
   const fileInputRef = useRef(null);
   const [fileName, setFileName] = useState("");
@@ -72,6 +73,7 @@ function UploadSection({
           selectedCameraId={selectedCameraId}
           onSelect={(camera) => onSelectCamera(camera.id)}
           onAddCamera={onAddCamera}
+          onDeleteCamera={onDeleteCamera}
         />
 
         <button className="upload-browse-button" onClick={handleBrowseClick}>

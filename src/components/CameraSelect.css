@@ -5,7 +5,7 @@
 .camera-select-trigger {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   padding: 10px 16px;
   border-radius: 6px;
   border: none;
@@ -23,10 +23,12 @@
 }
 
 .camera-select-arrow {
-  font-size: 11px;
-  color: #6b7280;
-  transition: transform 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #4b5563;
   flex-shrink: 0;
+  transition: transform 0.15s ease;
 }
 
 .camera-select-arrow.open {
@@ -37,7 +39,7 @@
   position: absolute;
   top: calc(100% + 6px);
   left: 0;
-  min-width: 240px;
+  min-width: 260px;
   background-color: #1e1e1e;
   border-radius: 8px;
   padding: 8px;
@@ -56,15 +58,12 @@
 
 .camera-select-item {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 2px;
-  padding: 8px 12px;
-  border: none;
-  background: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 8px 8px 12px;
   border-radius: 6px;
   cursor: pointer;
-  text-align: left;
   transition: background-color 0.15s ease;
 }
 
@@ -76,15 +75,49 @@
   background-color: #2a2a2a;
 }
 
+.camera-select-item-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 0;
+}
+
 .camera-select-item-name {
   color: #ffffff;
   font-size: 13px;
   font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
 }
 
 .camera-select-item-location {
   color: #9ca3af;
   font-size: 12px;
+}
+
+.camera-select-delete {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: none;
+  background: none;
+  color: #9ca3af;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.camera-select-delete:hover {
+  background-color: #e02424;
+  color: #ffffff;
 }
 
 .camera-select-divider {

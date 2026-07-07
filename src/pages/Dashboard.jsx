@@ -88,6 +88,11 @@ function Dashboard() {
     setSelectedCameraId(newCamera.id);
   };
 
+  const handleDeleteCamera = (cameraId) => {
+    setCameras((prev) => prev.filter((cam) => cam.id !== cameraId));
+    setSelectedCameraId((prev) => (prev === cameraId ? null : prev));
+  };
+
   return (
     <div className="dashboard-page">
       <NavBar />
@@ -116,6 +121,7 @@ function Dashboard() {
             selectedCameraId={selectedCameraId}
             onSelectCamera={setSelectedCameraId}
             onAddCamera={() => setShowAddCameraModal(true)}
+            onDeleteCamera={handleDeleteCamera}
           />
         )}
 
