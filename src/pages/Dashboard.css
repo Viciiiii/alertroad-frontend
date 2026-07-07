@@ -1,29 +1,30 @@
-.dashboard-content {
-  max-width: 1100px;
+.dashboard-page {
+  min-height: 100vh;
+  background-color: #ffffff;
+}
+
+.dashboard-hero {
+  text-align: center;
+  padding: 48px 24px 32px 24px;
+  max-width: 700px;
   margin: 0 auto;
-  padding: 0 24px;
 }
 
-.dashboard-hero{
-    text-align: center;
-    padding: 24px 0 0;
+.dashboard-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin-bottom: 12px;
 }
 
-.dashboard-hero h2{
-    font-size: 24px;
-    margin-bottom: 0 0 8px;
+.dashboard-subtitle {
+  font-size: 15px;
+  color: #6b7280;
+  line-height: 1.6;
 }
 
-.dashboard-hero p{
-    font-size: 13.5px;
-    color: #666;
-    max-width: 500px;
-    margin: 0 auto;
-    line-height: 1.6;
-}
-
-.dashboard-panels{
-    display: grid;
-    grid-template-columns: .7fr .4fr;
-    gap: 25px;
+.dashboard-content {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 0 24px 48px 24px;
 }
