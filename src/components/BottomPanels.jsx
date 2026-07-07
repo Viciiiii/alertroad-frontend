@@ -1,4 +1,5 @@
 import "./BottomPanels.css";
+import RiskMap from "./RiskMap";
 
 function BottomPanels({ recentScans, onSelectScan }) {
   return (
@@ -18,10 +19,7 @@ function BottomPanels({ recentScans, onSelectScan }) {
               No scans yet — pins will appear here after your first upload
             </p>
           ) : (
-            <p className="panel-empty-text">
-              Map view coming soon — {recentScans.length} scan
-              {recentScans.length !== 1 ? "s" : ""} recorded
-            </p>
+            <RiskMap scans={recentScans} />
           )}
         </div>
       </div>

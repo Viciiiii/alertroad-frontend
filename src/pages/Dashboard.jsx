@@ -54,6 +54,8 @@ function Dashboard() {
         ...mockScanResult,
         location: selectedCamera ? selectedCamera.location : mockScanResult.location,
         cameraName: selectedCamera ? selectedCamera.name : "Unknown Camera",
+        lat: selectedCamera ? selectedCamera.lat : null,
+        lng: selectedCamera ? selectedCamera.lng : null,
         fileName: selectedFile.name,
         fileUrl: URL.createObjectURL(selectedFile),
         fileType: selectedFile.type.startsWith("video") ? "Video" : "Image",
