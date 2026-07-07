@@ -1,0 +1,179 @@
+/* ==========================================================================
+   RiskMapModal.css
+   Larger "expanded view" for the Road Risk Map, opened via the expand
+   button in RiskMap.jsx. Dark-themed to match the Road Risk Map panel
+   it's extending, rather than the light ScanModal card style.
+   ========================================================================== */
+
+.risk-map-modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 4000; /* above CameraSelect's dropdown (3000) and Leaflet's own controls (1000) */
+  padding: 24px;
+}
+
+.risk-map-modal-card {
+  position: relative;
+  background-color: #1e1e1e;
+  border-radius: 10px;
+  width: 90vw;
+  max-width: 1300px;
+  height: 85vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+}
+
+.risk-map-modal-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: none;
+  background-color: #e02424;
+  color: #ffffff;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1; /* sits above the header within the card's own stacking order */
+}
+
+.risk-map-modal-close:hover {
+  background-color: #c11c1c;
+}
+
+.risk-map-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 52px 16px 20px; /* right padding clears the close button */
+  border-bottom: 1px solid #333333;
+  flex-shrink: 0;
+}
+
+.risk-map-modal-title {
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.risk-map-modal-legend {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #a0a0a0;
+  font-size: 12px;
+  flex-wrap: wrap;
+}
+
+.risk-map-modal-legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  margin-left: 8px;
+  margin-right: 2px;
+}
+
+.risk-map-modal-legend-low {
+  background-color: #22c55e;
+}
+
+.risk-map-modal-legend-medium {
+  background-color: #f5a623;
+}
+
+.risk-map-modal-legend-high {
+  background-color: #e02424;
+}
+
+.risk-map-modal-map-wrapper {
+  flex: 1;
+  min-height: 0; /* required so a flex child can shrink below its content size in a column layout */
+}
+
+.risk-map-modal-container {
+  width: 100%;
+  height: 100%;
+}
+
+/* Reuse the same Leaflet control theming as the embedded map */
+.risk-map-modal-container .leaflet-control-zoom a {
+  background-color: #20262f;
+  color: #e6e6e6;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.risk-map-modal-container .leaflet-control-zoom a:hover {
+  background-color: #2a323d;
+  color: #ffffff;
+}
+
+.risk-map-modal-container .leaflet-control-attribution {
+  background: rgba(20, 24, 30, 0.75);
+  color: #b7bec7;
+  font-size: 10px;
+}
+
+.risk-map-modal-container .leaflet-control-attribution a {
+  color: #8fb8ff;
+}
+
+.risk-map-modal-container .leaflet-popup-content-wrapper {
+  background: #20262f;
+  color: #e6e6e6;
+  border-radius: 8px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+}
+
+.risk-map-modal-container .leaflet-popup-tip {
+  background: #20262f;
+}
+
+.risk-map-modal-container .leaflet-popup-content {
+  margin: 10px 12px;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.risk-map-modal-container .leaflet-popup-content strong {
+  color: #ffffff;
+}
+
+/* ==========================================================================
+   Responsive tweaks
+   ========================================================================== */
+
+@media (max-width: 640px) {
+  .risk-map-modal-backdrop {
+    padding: 12px;
+  }
+
+  .risk-map-modal-card {
+    width: 100%;
+    height: 90vh;
+  }
+
+  .risk-map-modal-header {
+    padding: 12px 44px 12px 14px;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .risk-map-modal-title {
+    font-size: 14px;
+  }
+}

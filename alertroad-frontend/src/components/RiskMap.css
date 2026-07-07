@@ -1,0 +1,149 @@
+/* ==========================================================================
+   RiskMap.css
+   Styles for the Leaflet-based Road Risk Map (RiskMap.jsx)
+   ========================================================================== */
+
+/* --- Outer wrapper div in RiskMap.jsx ---
+   Its parent (.road-risk-body -> .panel-body) is a flex container with
+   align-items: center, which sizes children to their content by default.
+   align-self: stretch opts this element out of that so it actually fills
+   the available height instead of collapsing to 0. */
+.risk-map-wrapper {
+  width: 100%;
+  height: 100%;
+  align-self: stretch;
+  min-height: 260px;
+  border-radius: 6px;
+  overflow: hidden;
+  position: relative; /* anchors the absolutely-positioned expand button */
+}
+
+/* --- className passed directly to <MapContainer> ---
+   react-leaflet renders this as the actual .leaflet-container element.
+   Leaflet does not set its own height, so without this rule the map
+   collapses to 0px regardless of how the wrapper above is sized. */
+.risk-map-container {
+  width: 100%;
+  height: 100%;
+  min-height: 260px;
+  background: #1a1f26; /* visible briefly while tiles are loading */
+}
+
+/* ==========================================================================
+   Leaflet control overrides (zoom buttons, attribution)
+   Leaflet ships its own CSS; these rules override the defaults so the
+   controls match AlertRoad's dark theme instead of the stock white style.
+   ========================================================================== */
+
+.risk-map-container .leaflet-control-zoom a {
+  background-color: #20262f;
+  color: #e6e6e6;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.risk-map-container .leaflet-control-zoom a:hover {
+  background-color: #2a323d;
+  color: #ffffff;
+}
+
+.risk-map-container .leaflet-control-attribution {
+  background: rgba(20, 24, 30, 0.75);
+  color: #b7bec7;
+  font-size: 10px;
+}
+
+.risk-map-container .leaflet-control-attribution a {
+  color: #8fb8ff;
+}
+
+/* ==========================================================================
+   Custom triangle marker icon (className passed to L.divIcon in RiskMap.jsx)
+   Leaflet's default divIcon styling adds a white box + border meant for
+   text labels. Since createTriangleIcon() already renders a full custom
+   SVG (triangle + "!" glyph, with fill color set inline per risk level),
+   that default chrome needs to be stripped away so only the SVG shows.
+   ========================================================================== */
+
+.risk-map-marker-icon {
+  background: transparent;
+  border: none;
+}
+
+/* ==========================================================================
+   Expand button (opens RiskMapModal for a larger view)
+   Sits inside .risk-map-wrapper, absolutely positioned over the map's
+   top-right corner. z-index must clear Leaflet's own controls, which use
+   up to z-index: 1000 — same reasoning as CameraSelect's dropdown fix.
+   ========================================================================== */
+
+.risk-map-expand-button {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 1100;
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background-color: rgba(32, 38, 47, 0.9);
+  color: #e6e6e6;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.risk-map-expand-button:hover {
+  background-color: #2a323d;
+  color: #ffffff;
+}
+
+/* ==========================================================================
+   Popup styling (shown when a marker is clicked)
+   Targets Leaflet's own popup classes — the Popup content itself in
+   RiskMap.jsx is plain <strong>/<br> markup, so no custom content classes
+   are needed here, just the popup "chrome" around it.
+   ========================================================================== */
+
+.risk-map-container .leaflet-popup-content-wrapper {
+  background: #20262f;
+  color: #e6e6e6;
+  border-radius: 8px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+}
+
+.risk-map-container .leaflet-popup-tip {
+  background: #20262f;
+}
+
+.risk-map-container .leaflet-popup-content {
+  margin: 10px 12px;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.risk-map-container .leaflet-popup-content strong {
+  color: #ffffff;
+}
+
+/* ==========================================================================
+   Responsive tweaks
+   ========================================================================== */
+
+@media (max-width: 640px) {
+  .risk-map-wrapper,
+  .risk-map-container {
+    min-height: 200px;
+  }
+
+  .risk-map-expand-button {
+    top: 8px;
+    right: 8px;
+    width: 26px;
+    height: 26px;
+    font-size: 13px;
+  }
+}

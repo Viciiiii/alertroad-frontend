@@ -1,0 +1,17 @@
+# Frontend
+alertroad-frontend/node_modules/
+alertroad-frontend/dist/
+
+# Backend
+alertroad-backend/.env
+alertroad-backend/.venv/
+alertroad-backend/venv/
+alertroad-backend/__pycache__/
+*.pyc
+
+# VS Code
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db

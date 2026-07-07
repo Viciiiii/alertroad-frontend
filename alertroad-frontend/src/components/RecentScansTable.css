@@ -1,0 +1,29 @@
+.recent-scans {
+  background: #f7f7f7;
+  border: 1px solid #eee;
+  border-radius: 10px;
+  padding: 16px;
+}
+
+.recent-scans-title {
+  font-size: 13px;
+  font-weight: 600;
+  margin: 0 0 10px;
+}
+
+.recent-scans-canvas {
+  background: #1f1f1f;
+  border-radius: 8px;
+  height: 250px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 24px;
+}
+
+.recent-scans-canvas p {
+  color: #777;
+  font-size: 12.5px;
+  text-align: center;
+  margin: 0;
+}

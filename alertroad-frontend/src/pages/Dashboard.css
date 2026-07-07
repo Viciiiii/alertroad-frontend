@@ -1,0 +1,42 @@
+.dashboard-page {
+  min-height: 100vh;
+  background-color: #ffffff;
+}
+
+/* Navbar is 74px tall (20px vertical padding + ~33px tallest content + 1px border).
+   Giving this wrapper min-height: calc(100vh - 74px) guarantees the hero + upload
+   panels always fill the rest of the screen on load, on any device, so InfoSections
+   (the "Overview" section) only comes into view once the user scrolls — no more
+   guessing a fixed padding value that only works at one screen height.
+   Plain block (not flex) on purpose: flex would make the cross-axis "margin: auto"
+   on .dashboard-hero/.dashboard-content shrink them to content size instead of
+   centering at their intended max-width. */
+.dashboard-fold {
+  min-height: calc(100vh - 74px);
+}
+
+.dashboard-hero {
+  text-align: center;
+  padding: 48px 24px 32px 24px;
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+.dashboard-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin-bottom: 12px;
+}
+
+.dashboard-subtitle {
+  font-size: 15px;
+  color: #6b7280;
+  line-height: 1.6;
+}
+
+.dashboard-content {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 0 24px 48px 24px;
+}
