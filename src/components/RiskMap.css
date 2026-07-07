@@ -1,39 +1,240 @@
-.risk-map {
-  background: #f7f7f7;
-  border: 1px solid #eee;
+/* ==========================================================================
+   RiskMap.css
+   Styles for the Leaflet-based Road Risk Map (RiskMap.jsx)
+   ========================================================================== */
+
+/* --- Outer wrapper that sits inside the road-risk-body panel --- */
+.risk-map-container {
+  width: 100%;
+  height: 100%;
+  min-height: 320px;
   border-radius: 10px;
-  padding: 16px;
+  overflow: hidden;
+  position: relative;
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.risk-map-header {
+/* --- The actual Leaflet mount point --- */
+.risk-map {
+  width: 100%;
+  height: 100%;
+  min-height: 320px;
+  background: #1a1f26; /* visible while tiles are loading */
+}
+
+/* ==========================================================================
+   Leaflet control overrides (zoom buttons, attribution)
+   Leaflet ships its own CSS; these rules override the defaults so the
+   controls match AlertRoad's dark theme instead of looking like a bare
+   OpenStreetMap widget.
+   ========================================================================== */
+
+.risk-map .leaflet-control-zoom a {
+  background-color: #20262f;
+  color: #e6e6e6;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.risk-map .leaflet-control-zoom a:hover {
+  background-color: #2a323d;
+  color: #ffffff;
+}
+
+.risk-map .leaflet-control-attribution {
+  background: rgba(20, 24, 30, 0.75);
+  color: #b7bec7;
+  font-size: 10px;
+}
+
+.risk-map .leaflet-control-attribution a {
+  color: #8fb8ff;
+}
+
+/* ==========================================================================
+   Custom triangle markers (rendered via L.divIcon)
+   Pure CSS triangles use the border trick: a zero-width/height box with
+   transparent left/right borders and a colored bottom border forms a
+   triangle pointing up. Color is swapped per risk level via modifier class.
+   ========================================================================== */
+
+.risk-marker-triangle {
+  width: 0;
+  height: 0;
+  border-left: 9px solid transparent;
+  border-right: 9px solid transparent;
+  border-bottom: 16px solid currentColor;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
+  transform: translateY(-4px); /* nudges the tip to sit on the exact lat/lng point */
+}
+
+.risk-marker-triangle.risk-high {
+  color: #e5484d; /* red */
+}
+
+.risk-marker-triangle.risk-medium {
+  color: #f5c542; /* yellow */
+}
+
+.risk-marker-triangle.risk-low {
+  color: #3ecf8e; /* green */
+}
+
+/* Subtle pulse on high-risk markers so they draw the eye first */
+.risk-marker-triangle.risk-high {
+  animation: risk-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes risk-pulse {
+  0%,
+  100% {
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5))
+      drop-shadow(0 0 0 rgba(229, 72, 77, 0));
+  }
+  50% {
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5))
+      drop-shadow(0 0 6px rgba(229, 72, 77, 0.8));
+  }
+}
+
+/* ==========================================================================
+   Popup styling (shown when a marker is clicked)
+   ========================================================================== */
+
+.risk-map .leaflet-popup-content-wrapper {
+  background: #20262f;
+  color: #e6e6e6;
+  border-radius: 8px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+}
+
+.risk-map .leaflet-popup-tip {
+  background: #20262f;
+}
+
+.risk-map .leaflet-popup-content {
+  margin: 10px 12px;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.risk-popup-title {
+  font-weight: 600;
+  font-size: 13.5px;
+  margin-bottom: 4px;
+  color: #ffffff;
+}
+
+.risk-popup-row {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  font-size: 13px;
-  font-weight: 600;
-  margin-bottom: 10px;
+  gap: 10px;
+  color: #b7bec7;
+  font-size: 12px;
 }
+
+.risk-popup-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.risk-popup-badge.risk-high {
+  background: rgba(229, 72, 77, 0.15);
+  color: #e5484d;
+}
+
+.risk-popup-badge.risk-medium {
+  background: rgba(245, 197, 66, 0.15);
+  color: #f5c542;
+}
+
+.risk-popup-badge.risk-low {
+  background: rgba(62, 207, 142, 0.15);
+  color: #3ecf8e;
+}
+
+/* ==========================================================================
+   Legend (risk level key, overlaid bottom-left of the map)
+   ========================================================================== */
 
 .risk-map-legend {
-  font-size: 10.5px;
-  font-weight: 400;
-  color: #999;
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  z-index: 1000; /* above Leaflet's own panes */
+  background: rgba(20, 24, 30, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 12px;
+  color: #d5d9de;
+  pointer-events: none; /* clicks pass through to the map underneath */
 }
 
-.risk-map-canvas {
-  background: #1f1f1f;
-  border-radius: 8px;
-  height: 250px;
+.risk-map-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.risk-map-legend-swatch {
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-bottom: 11px solid currentColor;
+}
+
+.risk-map-legend-swatch.risk-high {
+  color: #e5484d;
+}
+
+.risk-map-legend-swatch.risk-medium {
+  color: #f5c542;
+}
+
+.risk-map-legend-swatch.risk-low {
+  color: #3ecf8e;
+}
+
+/* ==========================================================================
+   Loading / empty states
+   ========================================================================== */
+
+.risk-map-loading,
+.risk-map-empty {
+  width: 100%;
+  height: 100%;
+  min-height: 320px;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0 24px;
+  color: #8a919a;
+  font-size: 13px;
+  background: #1a1f26;
 }
 
-.risk-map-canvas p {
-  color: #777;
-  font-size: 12.5px;
-  text-align: center;
-  margin: 0;
-  line-height: 1.6;
+/* ==========================================================================
+   Responsive tweaks
+   ========================================================================== */
+
+@media (max-width: 640px) {
+  .risk-map-container,
+  .risk-map,
+  .risk-map-loading,
+  .risk-map-empty {
+    min-height: 240px;
+  }
+
+  .risk-map-legend {
+    font-size: 11px;
+    padding: 6px 8px;
+  }
 }
