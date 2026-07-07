@@ -1,4 +1,5 @@
 from pydantic import BaseModel
+from typing import Optional
 
 class CameraSchema(BaseModel):
     id: str
@@ -11,6 +12,13 @@ class CameraSchema(BaseModel):
         from_attributes = True
 
 
+class CameraCreate(BaseModel):
+    name: str
+    location: str
+    lat: float
+    lng: float
+
+
 class ScanResultSchema(BaseModel):
     id: int
     location: str
@@ -19,9 +27,16 @@ class ScanResultSchema(BaseModel):
     cracks: int
     confidence: int
     traffic: int
+    camera_name: Optional[str] = None
+    lat: Optional[float] = None
+    lng: Optional[float] = None
 
     class Config:
         from_attributes = True
+
+
+class ScanCreate(BaseModel):
+    camera_id: str
 
 
 class UserCreate(BaseModel):
@@ -35,12 +50,3 @@ class UserLogin(BaseModel):
 class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
-
-class ScanCreate(BaseModel):
-    location: str
-
-class CameraCreate(BaseModel):
-    name: str
-    location: str
-    lat: float
-    lng: float

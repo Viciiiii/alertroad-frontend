@@ -35,9 +35,9 @@ function Dashboard() {
           riskLevel: scan.risk_level,
           fileUrl: null,
           fileType: "Image",
-          cameraName: null,
-          lat: null,
-          lng: null,
+          cameraName: scan.camera_name,
+          lat: scan.lat,
+          lng: scan.lng,
         }));
 
         setRecentScans(formatted);
@@ -79,13 +79,12 @@ function Dashboard() {
     setScanState("loading");
 
     const selectedCamera = cameras.find((cam) => cam.id === selectedCameraId);
-    const location = selectedCamera ? selectedCamera.location : "Unknown location";
 
     try {
       const response = await fetch(`${API_URL}/api/scans`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ location }),
+        body: JSON.stringify({ camera_id: selectedCameraId }),
       });
 
       if (!response.ok) {
@@ -98,9 +97,9 @@ function Dashboard() {
       const result = {
         ...saved,
         riskLevel: saved.risk_level,
-        cameraName: selectedCamera ? selectedCamera.name : "Unknown Camera",
-        lat: selectedCamera ? selectedCamera.lat : null,
-        lng: selectedCamera ? selectedCamera.lng : null,
+        cameraName: saved.camera_name,
+        lat: saved.lat,
+        lng: saved.lng,
         fileName: selectedFile.name,
         fileUrl: URL.createObjectURL(selectedFile),
         fileType: selectedFile.type.startsWith("video") ? "Video" : "Image",

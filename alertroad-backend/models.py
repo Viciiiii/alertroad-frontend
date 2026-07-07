@@ -29,3 +29,6 @@ class ScanResult(Base):
     cracks = Column(Integer, default=0)
     confidence = Column(Integer, default=0)
     traffic = Column(Integer, default=0)
+    camera_name = Column(String, nullable=True)
+    lat = Column(Float, nullable=True)
+    lng = Column(Float, nullable=True)

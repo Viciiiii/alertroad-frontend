@@ -82,6 +82,10 @@ def get_scans(db: Session = Depends(get_db)):
 
 @app.post("/api/scans", response_model=ScanResultSchema)
 def create_scan(scan: ScanCreate, db: Session = Depends(get_db)):
+    camera = db.query(Camera).filter(Camera.id == scan.camera_id).first()
+    if not camera:
+        raise HTTPException(status_code=404, detail="Camera not found")
+
     # PLACEHOLDER: replace this block once the real detection model is ready.
     potholes = random.randint(0, 6)
     cracks = random.randint(0, 6)
@@ -97,12 +101,15 @@ def create_scan(scan: ScanCreate, db: Session = Depends(get_db)):
         risk_level = "Low"
 
     new_scan = ScanResult(
-        location=scan.location,
+        location=camera.location,
         risk_level=risk_level,
         potholes=potholes,
         cracks=cracks,
         confidence=confidence,
         traffic=traffic,
+        camera_name=camera.name,
+        lat=camera.lat,
+        lng=camera.lng,
     )
     db.add(new_scan)
     db.commit()
