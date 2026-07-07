@@ -3,17 +3,15 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import "./Login.css";
 
-const MOCK_EMAIL = "alertroad@gmail.com";
-const MOCK_PASSWORD = "password123";
-
 function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
   const { login } = useAuth();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
 
@@ -22,13 +20,15 @@ function Login() {
       return;
     }
 
-    if (email !== MOCK_EMAIL || password !== MOCK_PASSWORD) {
-      setError("Incorrect Email or Password");
-      return;
+    setIsSubmitting(true);
+    try {
+      await login(email, password);
+      navigate("/dashboard");
+    } catch (err) {
+      setError(err.message || "Incorrect Email or Password");
+    } finally {
+      setIsSubmitting(false);
     }
-
-    login();
-    navigate("/dashboard");
   };
 
   return (
@@ -67,8 +67,8 @@ function Login() {
           />
           {error && <p className="login-error-text">{error}</p>}
 
-          <button type="submit" className="login-button">
-            Continue
+          <button type="submit" className="login-button" disabled={isSubmitting}>
+            {isSubmitting ? "Logging in..." : "Continue"}
           </button>
         </form>
       </div>
