@@ -1,9 +1,11 @@
 import { useState } from "react";
+import LocationAutocomplete from "./LocationAutocomplete";
 import "./AddCameraModal.css";
 
 function AddCameraModal({ onClose, onAddCamera }) {
   const [name, setName] = useState("");
-  const [location, setLocation] = useState("");
+  const [locationText, setLocationText] = useState("");
+  const [selectedLocation, setSelectedLocation] = useState(null);
   const [error, setError] = useState("");
 
   const handleBackdropClick = () => {
@@ -14,18 +16,36 @@ function AddCameraModal({ onClose, onAddCamera }) {
     e.stopPropagation();
   };
 
+  const handleLocationTextChange = (text) => {
+    setLocationText(text);
+    // Any manual retyping invalidates the previously selected coordinates
+    setSelectedLocation(null);
+  };
+
+  const handleSelectLocation = (location) => {
+    setLocationText(location.address);
+    setSelectedLocation(location);
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    if (!name.trim() || !location.trim()) {
-      setError("Please fill in both camera name and location.");
+    if (!name.trim()) {
+      setError("Please enter a camera name.");
+      return;
+    }
+
+    if (!selectedLocation) {
+      setError("Please select a location from the suggestions list.");
       return;
     }
 
     onAddCamera({
       id: `cam-${Date.now()}`,
       name: name.trim(),
-      location: location.trim(),
+      location: selectedLocation.address,
+      lat: selectedLocation.lat,
+      lng: selectedLocation.lng,
     });
 
     onClose();
@@ -60,14 +80,13 @@ function AddCameraModal({ onClose, onAddCamera }) {
           <label className="add-camera-label" htmlFor="camera-location">
             Location
           </label>
-          <input
-            id="camera-location"
-            type="text"
-            className="add-camera-input"
-            placeholder="e.g. Commonwealth Ave., Quezon City"
-            value={location}
-            onChange={(e) => setLocation(e.target.value)}
-          />
+          <div className="add-camera-location-wrapper">
+            <LocationAutocomplete
+              value={locationText}
+              onChange={handleLocationTextChange}
+              onSelectLocation={handleSelectLocation}
+            />
+          </div>
 
           {error && <p className="add-camera-error">{error}</p>}
 
