@@ -22,16 +22,16 @@ export function AuthProvider({ children }) {
   const [isAuthenticated, setIsAuthenticated] = useState(!!storedToken);
   const [isAdmin, setIsAdmin] = useState(storedPayload?.is_admin || false);
 
-  const login = async (email, password) => {
+  const login = async (username, password) => {
     const response = await fetch(`${API_URL}/api/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ username, password }),
     });
 
     if (!response.ok) {
       const data = await response.json().catch(() => ({}));
-      throw new Error(data.detail || "Incorrect Email or Password");
+      throw new Error(data.detail || "Incorrect Username or Password");
     }
 
     const data = await response.json();

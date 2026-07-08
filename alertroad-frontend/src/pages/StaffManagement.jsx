@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useEffect } from "react";
 import NavBar from "../components/NavBar";
 import "./StaffManagement.css";
 
@@ -6,10 +7,13 @@ const API_URL = "http://localhost:8000";
 
 function StaffManagement() {
   const [users, setUsers] = useState([]);
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [resetTargetId, setResetTargetId] = useState(null);
+  const [newPassword, setNewPassword] = useState("");
+  const [resetError, setResetError] = useState("");
 
   const authHeaders = () => ({
     "Content-Type": "application/json",
@@ -37,8 +41,8 @@ function StaffManagement() {
     e.preventDefault();
     setError("");
 
-    if (!email.trim() || !password.trim()) {
-      setError("Email and password are required.");
+    if (!username.trim() || !password.trim()) {
+      setError("Username and password are required.");
       return;
     }
 
@@ -47,7 +51,7 @@ function StaffManagement() {
       const response = await fetch(`${API_URL}/api/users`, {
         method: "POST",
         headers: authHeaders(),
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ username, password }),
       });
 
       if (!response.ok) {
@@ -56,7 +60,7 @@ function StaffManagement() {
         return;
       }
 
-      setEmail("");
+      setUsername("");
       setPassword("");
       loadUsers();
     } catch (err) {
@@ -85,6 +89,50 @@ function StaffManagement() {
     }
   };
 
+  const handleOpenReset = (userId) => {
+    setResetTargetId(userId);
+    setNewPassword("");
+    setResetError("");
+  };
+
+  const handleCancelReset = () => {
+    setResetTargetId(null);
+    setNewPassword("");
+    setResetError("");
+  };
+
+  const handleSubmitReset = async (e) => {
+    e.preventDefault();
+    setResetError("");
+
+    if (!newPassword.trim()) {
+      setResetError("Enter a new password.");
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `${API_URL}/api/users/${resetTargetId}/reset-password`,
+        {
+          method: "PUT",
+          headers: authHeaders(),
+          body: JSON.stringify({ new_password: newPassword }),
+        }
+      );
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        setResetError(data.detail || "Failed to reset password.");
+        return;
+      }
+
+      alert("Password reset. Share the new password with the staff member directly.");
+      handleCancelReset();
+    } catch (err) {
+      setResetError("Something went wrong. Please try again.");
+    }
+  };
+
   return (
     <div className="staff-page">
       <NavBar />
@@ -95,15 +143,15 @@ function StaffManagement() {
         <form className="staff-form" onSubmit={handleCreate}>
           <h2 className="staff-form-title">Add New Staff</h2>
 
-          <label className="staff-label" htmlFor="staff-email">
-            Email
+          <label className="staff-label" htmlFor="staff-username">
+            Username
           </label>
           <input
-            id="staff-email"
-            type="email"
+            id="staff-username"
+            type="text"
             className="staff-input"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
           />
 
           <label className="staff-label" htmlFor="staff-password">
@@ -132,17 +180,54 @@ function StaffManagement() {
             <div className="staff-table">
               {users.map((user) => (
                 <div key={user.id} className="staff-row">
-                  <span className="staff-row-email">{user.email}</span>
+                  <span className="staff-row-email">{user.username}</span>
                   <span className="staff-row-role">
                     {user.is_admin ? "Admin" : "Staff"}
                   </span>
+
                   {!user.is_admin && (
-                    <button
-                      className="staff-row-delete"
-                      onClick={() => handleDelete(user.id)}
-                    >
-                      Remove
-                    </button>
+                    <>
+                      <button
+                        className="staff-row-reset"
+                        onClick={() => handleOpenReset(user.id)}
+                      >
+                        Reset Password
+                      </button>
+                      <button
+                        className="staff-row-delete"
+                        onClick={() => handleDelete(user.id)}
+                      >
+                        Remove
+                      </button>
+                    </>
+                  )}
+
+                  {resetTargetId === user.id && (
+                    <form className="staff-reset-form" onSubmit={handleSubmitReset}>
+                      <input
+                        type="password"
+                        className="staff-input"
+                        placeholder="New password"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        autoFocus
+                      />
+                      {resetError && (
+                        <p className="staff-error-text">{resetError}</p>
+                      )}
+                      <div className="staff-reset-actions">
+                        <button type="submit" className="staff-submit">
+                          Save New Password
+                        </button>
+                        <button
+                          type="button"
+                          className="staff-row-delete"
+                          onClick={handleCancelReset}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </form>
                   )}
                 </div>
               ))}

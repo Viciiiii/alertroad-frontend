@@ -94,6 +94,7 @@
   gap: 12px;
   padding: 14px 16px;
   border-bottom: 1px solid #e5e7eb;
+  flex-wrap: wrap;
 }
 
 .staff-row:last-child {
@@ -120,4 +121,27 @@
   padding: 6px 12px;
   font-size: 13px;
   cursor: pointer;
+}
+
+.staff-row-reset {
+  background: none;
+  border: 1px solid #1a1a1a;
+  color: #1a1a1a;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.staff-reset-form {
+  width: 100%;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.staff-reset-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
 }

@@ -4,7 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import "./Login.css";
 
 function Login() {
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -15,17 +15,17 @@ function Login() {
     e.preventDefault();
     setError("");
 
-    if (!email.trim() || !password.trim()) {
-      setError("Incorrect Email or Password");
+    if (!username.trim() || !password.trim()) {
+      setError("Incorrect Username or Password");
       return;
     }
 
     setIsSubmitting(true);
     try {
-      await login(email, password);
+      await login(username, password);
       navigate("/dashboard");
     } catch (err) {
-      setError(err.message || "Incorrect Email or Password");
+      setError(err.message || "Incorrect Username or Password");
     } finally {
       setIsSubmitting(false);
     }
@@ -42,15 +42,15 @@ function Login() {
         <form className="login-card" onSubmit={handleSubmit} noValidate>
           <h1 className="login-title">Log In</h1>
 
-          <label className="login-label" htmlFor="email">
-            Email
+          <label className="login-label" htmlFor="username">
+            Username
           </label>
           <input
-            id="email"
-            type="email"
+            id="username"
+            type="text"
             className={`login-input ${error ? "login-input-error" : ""}`}
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
             autoComplete="username"
           />
 
