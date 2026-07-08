@@ -12,6 +12,7 @@ function UploadSection({
   onSelectCamera,
   onAddCamera,
   onDeleteCamera,
+  isAdmin,
 }) {
   const fileInputRef = useRef(null);
   const [fileName, setFileName] = useState("");

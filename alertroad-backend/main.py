@@ -8,7 +8,7 @@ from models import Camera, ScanResult, User
 from schemas import (
     CameraSchema, CameraCreate,
     ScanResultSchema, ScanCreate,
-    UserCreate, UserLogin, Token, UserSchema,
+    UserCreate, UserLogin, Token, UserSchema, PasswordReset,
 )
 from auth import (
     hash_password, verify_password, create_access_token,
@@ -36,11 +36,11 @@ def root():
 
 @app.post("/api/login", response_model=Token)
 def login(credentials: UserLogin, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.email == credentials.email).first()
+    user = db.query(User).filter(User.username == credentials.username).first()
     if not user or not verify_password(credentials.password, user.hashed_password):
-        raise HTTPException(status_code=401, detail="Incorrect email or password")
+        raise HTTPException(status_code=401, detail="Incorrect username or password")
 
-    token = create_access_token({"sub": user.email, "is_admin": user.is_admin})
+    token = create_access_token({"sub": user.username, "is_admin": user.is_admin})
     return {"access_token": token}
 
 # --- Staff management (admin-only) ---
@@ -51,12 +51,12 @@ def create_staff(
     db: Session = Depends(get_db),
     admin: User = Depends(get_current_admin),
 ):
-    existing = db.query(User).filter(User.email == user.email).first()
+    existing = db.query(User).filter(User.username == user.username).first()
     if existing:
-        raise HTTPException(status_code=400, detail="Email already registered")
+        raise HTTPException(status_code=400, detail="Username already taken")
 
     new_user = User(
-        email=user.email,
+        username=user.username,
         hashed_password=hash_password(user.password),
         is_admin=False,
     )
@@ -86,6 +86,21 @@ def delete_staff(
     db.commit()
     return {"message": "User deleted"}
 
+@app.put("/api/users/{user_id}/reset-password")
+def reset_password(
+    user_id: int,
+    payload: PasswordReset,
+    db: Session = Depends(get_db),
+    admin: User = Depends(get_current_admin),
+):
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    user.hashed_password = hash_password(payload.new_password)
+    db.commit()
+    return {"message": "Password reset successfully"}
+
 # --- Cameras ---
 
 @app.get("/api/cameras", response_model=List[CameraSchema])
@@ -96,7 +111,7 @@ def get_cameras(db: Session = Depends(get_db)):
 def create_camera(
     camera: CameraCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),  # staff or admin, just needs to be logged in
+    current_user: User = Depends(get_current_user),
 ):
     new_camera = Camera(
         id=str(uuid.uuid4()),
@@ -134,7 +149,7 @@ def get_scans(db: Session = Depends(get_db)):
 def create_scan(
     scan: ScanCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),  # staff or admin, just needs to be logged in
+    current_user: User = Depends(get_current_user),
 ):
     camera = db.query(Camera).filter(Camera.id == scan.camera_id).first()
     if not camera:

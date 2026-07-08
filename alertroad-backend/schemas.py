@@ -40,11 +40,11 @@ class ScanCreate(BaseModel):
 
 
 class UserCreate(BaseModel):
-    email: str
+    username: str
     password: str
 
 class UserLogin(BaseModel):
-    email: str
+    username: str
     password: str
 
 class Token(BaseModel):
@@ -54,8 +54,12 @@ class Token(BaseModel):
 
 class UserSchema(BaseModel):
     id: int
-    email: str
+    username: str
     is_admin: bool
 
     class Config:
         from_attributes = True
+
+
+class PasswordReset(BaseModel):
+    new_password: str

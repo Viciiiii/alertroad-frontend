@@ -36,15 +36,14 @@ def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
     db: Session = Depends(get_db),
 ):
-    # Import here to avoid a circular import with models.py
     from models import User
 
     payload = decode_access_token(credentials.credentials)
     if payload is None:
         raise HTTPException(status_code=401, detail="Invalid or expired token")
 
-    email = payload.get("sub")
-    user = db.query(User).filter(User.email == email).first()
+    username = payload.get("sub")
+    user = db.query(User).filter(User.username == username).first()
     if user is None:
         raise HTTPException(status_code=401, detail="User not found")
 
