@@ -6,12 +6,15 @@ import BottomPanels from "../components/BottomPanels";
 import ScanModal from "../components/ScanModal";
 import InfoSections from "../components/InfoSections";
 import AddCameraModal from "../components/AddCameraModal";
+import { useAuth } from "../context/AuthContext";
 import "./Dashboard.css";
 
 const API_URL = "http://localhost:8000";
 
 // scanState: "idle" | "loading" | "success" | "error" | "no-file-error" | "no-camera-error"
 function Dashboard() {
+  const { isAdmin } = useAuth();
+
   const [scanState, setScanState] = useState("idle");
   const [currentScan, setCurrentScan] = useState(null);
   const [recentScans, setRecentScans] = useState([]);
@@ -21,6 +24,11 @@ function Dashboard() {
   const [cameras, setCameras] = useState([]);
   const [selectedCameraId, setSelectedCameraId] = useState(null);
   const [showAddCameraModal, setShowAddCameraModal] = useState(false);
+
+  const authHeaders = () => ({
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${localStorage.getItem("token")}`,
+  });
 
   // Load past scans and registered cameras from the database on mount
   useEffect(() => {
@@ -83,7 +91,7 @@ function Dashboard() {
     try {
       const response = await fetch(`${API_URL}/api/scans`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders(),
         body: JSON.stringify({ camera_id: selectedCameraId }),
       });
 
@@ -136,7 +144,7 @@ function Dashboard() {
     try {
       const response = await fetch(`${API_URL}/api/cameras`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders(),
         body: JSON.stringify(newCamera),
       });
 
@@ -157,6 +165,7 @@ function Dashboard() {
     try {
       const response = await fetch(`${API_URL}/api/cameras/${cameraId}`, {
         method: "DELETE",
+        headers: authHeaders(),
       });
 
       if (!response.ok) {
@@ -168,6 +177,25 @@ function Dashboard() {
       setSelectedCameraId((prev) => (prev === cameraId ? null : prev));
     } catch (err) {
       console.error("Delete camera request failed:", err);
+    }
+  };
+
+  const handleDeleteScan = async (scanId) => {
+    try {
+      const response = await fetch(`${API_URL}/api/scans/${scanId}`, {
+        method: "DELETE",
+        headers: authHeaders(),
+      });
+
+      if (!response.ok) {
+        console.error("Failed to delete scan");
+        return;
+      }
+
+      setRecentScans((prev) => prev.filter((scan) => scan.id !== scanId));
+      setModalScan(null);
+    } catch (err) {
+      console.error("Delete scan request failed:", err);
     }
   };
 
@@ -201,6 +229,7 @@ function Dashboard() {
               onSelectCamera={setSelectedCameraId}
               onAddCamera={() => setShowAddCameraModal(true)}
               onDeleteCamera={handleDeleteCamera}
+              isAdmin={isAdmin}
             />
           )}
 
@@ -214,7 +243,12 @@ function Dashboard() {
       <InfoSections />
 
       {modalScan && (
-        <ScanModal scan={modalScan} onClose={handleCloseModal} />
+        <ScanModal
+          scan={modalScan}
+          onClose={handleCloseModal}
+          onDelete={handleDeleteScan}
+          isAdmin={isAdmin}
+        />
       )}
 
       {showAddCameraModal && (

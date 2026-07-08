@@ -7,6 +7,7 @@ function CameraSelect({
   onSelect,
   onAddCamera,
   onDeleteCamera,
+  isAdmin,
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
@@ -83,14 +84,16 @@ function CameraSelect({
                     {camera.location}
                   </span>
                 </div>
-                <button
-                  type="button"
-                  className="camera-select-delete"
-                  onClick={(e) => handleDeleteClick(e, camera.id)}
-                  aria-label={`Delete ${camera.name}`}
-                >
-                  ×
-                </button>
+                {isAdmin && (
+                  <button
+                    type="button"
+                    className="camera-select-delete"
+                    onClick={(e) => handleDeleteClick(e, camera.id)}
+                    aria-label={`Delete ${camera.name}`}
+                  >
+                    ×
+                  </button>
+                )}
               </div>
             ))
           )}

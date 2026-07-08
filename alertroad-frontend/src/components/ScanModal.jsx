@@ -1,12 +1,18 @@
 import "./ScanModal.css";
 
-function ScanModal({ scan, onClose }) {
+function ScanModal({ scan, onClose, onDelete, isAdmin }) {
   const handleBackdropClick = () => {
     onClose();
   };
 
   const handleCardClick = (e) => {
     e.stopPropagation();
+  };
+
+  const handleDeleteClick = () => {
+    if (window.confirm("Delete this scan record? This can't be undone.")) {
+      onDelete(scan.id);
+    }
   };
 
   return (
@@ -54,6 +60,12 @@ function ScanModal({ scan, onClose }) {
               <p className="scan-modal-stat-value">{scan.traffic} veh</p>
             </div>
           </div>
+
+          {isAdmin && (
+            <button className="scan-modal-delete" onClick={handleDeleteClick}>
+              Delete Scan Record
+            </button>
+          )}
         </div>
       </div>
     </div>

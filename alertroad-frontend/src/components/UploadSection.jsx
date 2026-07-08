@@ -74,6 +74,7 @@ function UploadSection({
           onSelect={(camera) => onSelectCamera(camera.id)}
           onAddCamera={onAddCamera}
           onDeleteCamera={onDeleteCamera}
+          isAdmin={isAdmin}
         />
 
         <button className="upload-browse-button" onClick={handleBrowseClick}>

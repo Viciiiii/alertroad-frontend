@@ -3,7 +3,7 @@ import { useAuth } from "../context/AuthContext";
 import "./NavBar.css";
 
 function NavBar() {
-  const { logout } = useAuth();
+  const { logout, isAdmin } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -44,10 +44,18 @@ function NavBar() {
         >
           How it works
         </button>
+        {isAdmin && (
+          <button
+            className="navbar-link"
+            onClick={() => navigate("/admin")}
+          >
+            Manage Staff
+          </button>
+        )}
       </div>
 
       <div className="navbar-actions">
-        <span className="navbar-admin">Admin</span>
+        <span className="navbar-admin">{isAdmin ? "Admin" : "Staff"}</span>
         <button className="navbar-logout" onClick={handleLogout}>
           Log out
         </button>
