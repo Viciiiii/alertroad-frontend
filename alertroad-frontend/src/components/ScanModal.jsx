@@ -1,5 +1,11 @@
 import "./ScanModal.css";
 
+const RISK_COLORS = {
+  High: "#7a1c1c",
+  Medium: "#7a5a1c",
+  Low: "#1c5c2e",
+};
+
 function ScanModal({ scan, onClose, onDelete, isAdmin }) {
   const handleBackdropClick = () => {
     onClose();
@@ -35,7 +41,12 @@ function ScanModal({ scan, onClose, onDelete, isAdmin }) {
         </div>
 
         <div className="scan-modal-info">
-          <div className="scan-modal-risk-card">
+          <div
+            className="scan-modal-risk-card"
+            style={{
+              backgroundColor: RISK_COLORS[scan.riskLevel] || RISK_COLORS.Low,
+            }}
+          >
             <p className="scan-modal-risk-label">Risk Level</p>
             <p className="scan-modal-risk-value">{scan.riskLevel}</p>
             <p className="scan-modal-risk-location">📍 {scan.location}</p>

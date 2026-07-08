@@ -81,6 +81,7 @@
   align-items: flex-start;
   gap: 2px;
   min-width: 0;
+  flex: 1;
 }
 
 .camera-select-item-name {
@@ -96,6 +97,11 @@
 .camera-select-item-location {
   color: #9ca3af;
   font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+  text-align: left;
 }
 
 .camera-select-delete {
