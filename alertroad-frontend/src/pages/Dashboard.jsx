@@ -221,23 +221,31 @@ function Dashboard() {
   };
 
   const handleDeleteScan = async (scanId) => {
-    try {
-      const response = await fetch(`${API_URL}/api/scans/${scanId}`, {
-        method: "DELETE",
-        headers: authHeaders(),
-      });
+  try {
+    const response = await fetch(`${API_URL}/api/scans/${scanId}`, {
+      method: "DELETE",
+      headers: authHeaders(),
+    });
 
-      if (!response.ok) {
-        console.error("Failed to delete scan");
-        return;
-      }
-
-      setRecentScans((prev) => prev.filter((scan) => scan.id !== scanId));
-      setModalScan(null);
-    } catch (err) {
-      console.error("Delete scan request failed:", err);
+    if (!response.ok) {
+      console.error("Failed to delete scan");
+      return;
     }
-  };
+
+    setRecentScans((prev) => prev.filter((scan) => scan.id !== scanId));
+    setModalScan(null);
+
+    // If the scan being deleted is the one currently shown as the
+    // "success" result at the top, clear it too and go back to the
+    // upload view — otherwise it keeps showing a deleted scan.
+    if (currentScan && currentScan.id === scanId) {
+      setCurrentScan(null);
+      setScanState("idle");
+    }
+  } catch (err) {
+    console.error("Delete scan request failed:", err);
+  }
+};
 
   return (
     <div className="dashboard-page">

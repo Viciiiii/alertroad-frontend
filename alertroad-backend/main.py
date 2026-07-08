@@ -237,12 +237,17 @@ def delete_scan(
     if not scan:
         raise HTTPException(status_code=404, detail="Scan not found")
 
-    # Remove the saved image/video from disk too, so deleting a scan
-    # doesn't leave an orphaned file behind in uploads/.
+    # Remove the saved image/video from disk too. Wrapped in try/except
+    # because on Windows, a file being actively streamed (e.g. a video
+    # still open in the scan modal) is locked by the OS and can't be
+    # deleted yet — we don't want that to block deleting the DB record.
     if scan.image_filename:
         file_path = os.path.join(UPLOAD_DIR, scan.image_filename)
         if os.path.exists(file_path):
-            os.remove(file_path)
+            try:
+                os.remove(file_path)
+            except OSError as e:
+                print(f"Warning: could not delete file {file_path}: {e}")
 
     db.delete(scan)
     db.commit()
