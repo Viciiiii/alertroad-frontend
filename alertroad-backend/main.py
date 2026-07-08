@@ -1,20 +1,23 @@
+import os
 import random
+import shutil
 import uuid
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 from database import Base, engine, get_db
 from models import Camera, ScanResult, User
 from schemas import (
     CameraSchema, CameraCreate,
-    ScanResultSchema, ScanCreate,
+    ScanResultSchema,
     UserCreate, UserLogin, Token, UserSchema, PasswordReset,
 )
 from auth import (
     hash_password, verify_password, create_access_token,
     get_current_user, get_current_admin,
 )
-from typing import List
+from typing import List, Optional
 
 app = FastAPI()
 
@@ -27,6 +30,15 @@ app.add_middleware(
 )
 
 Base.metadata.create_all(bind=engine)
+
+# Folder where uploaded scan images/videos get saved on disk. Created
+# automatically if it doesn't exist yet — safe to run every startup.
+UPLOAD_DIR = "uploads"
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+# Serves saved files back out over HTTP, e.g. a file saved as
+# "uploads/abc123.jpg" becomes reachable at http://localhost:8000/uploads/abc123.jpg
+app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 
 @app.get("/")
 def root():
@@ -147,13 +159,17 @@ def get_scans(db: Session = Depends(get_db)):
 
 @app.post("/api/scans", response_model=ScanResultSchema)
 def create_scan(
-    scan: ScanCreate,
+    file: UploadFile = File(...),
+    camera_id: Optional[str] = Form(None),
+    location: Optional[str] = Form(None),
+    lat: Optional[float] = Form(None),
+    lng: Optional[float] = Form(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    if scan.camera_id:
+    if camera_id:
         # Fixed CCTV camera flow: look up the registered camera's location.
-        camera = db.query(Camera).filter(Camera.id == scan.camera_id).first()
+        camera = db.query(Camera).filter(Camera.id == camera_id).first()
         if not camera:
             raise HTTPException(status_code=404, detail="Camera not found")
 
@@ -164,16 +180,21 @@ def create_scan(
     else:
         # Handheld/mobile capture flow: no registered camera, so the
         # location must be sent directly in the request instead.
-        if scan.location is None or scan.lat is None or scan.lng is None:
+        if location is None or lat is None or lng is None:
             raise HTTPException(
                 status_code=400,
                 detail="location, lat, and lng are required when no camera_id is provided",
             )
 
-        location = scan.location
         camera_name = "Handheld Device"
-        lat = scan.lat
-        lng = scan.lng
+
+    # Save the uploaded file to disk under a random unique name so two
+    # different uploads that happen to share a filename never collide.
+    file_ext = os.path.splitext(file.filename)[1]
+    unique_filename = f"{uuid.uuid4()}{file_ext}"
+    file_path = os.path.join(UPLOAD_DIR, unique_filename)
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
 
     # PLACEHOLDER: replace this block once the real detection model is ready.
     potholes = random.randint(0, 6)
@@ -199,6 +220,7 @@ def create_scan(
         camera_name=camera_name,
         lat=lat,
         lng=lng,
+        image_filename=unique_filename,
     )
     db.add(new_scan)
     db.commit()
@@ -214,6 +236,13 @@ def delete_scan(
     scan = db.query(ScanResult).filter(ScanResult.id == scan_id).first()
     if not scan:
         raise HTTPException(status_code=404, detail="Scan not found")
+
+    # Remove the saved image/video from disk too, so deleting a scan
+    # doesn't leave an orphaned file behind in uploads/.
+    if scan.image_filename:
+        file_path = os.path.join(UPLOAD_DIR, scan.image_filename)
+        if os.path.exists(file_path):
+            os.remove(file_path)
 
     db.delete(scan)
     db.commit()

@@ -34,11 +34,11 @@ function Dashboard() {
   });
 
   const handleManualLocationTextChange = (text) => {
-  setManualLocation((prev) => ({ ...prev, location: text, lat: "", lng: "" }));
+    setManualLocation((prev) => ({ ...prev, location: text, lat: "", lng: "" }));
   };
 
   const handleManualLocationSelect = ({ address, lat, lng }) => {
-  setManualLocation({ location: address, lat, lng });
+    setManualLocation({ location: address, lat, lng });
   };
 
   const authHeaders = () => ({
@@ -57,7 +57,7 @@ function Dashboard() {
         const formatted = data.map((scan) => ({
           ...scan,
           riskLevel: scan.risk_level,
-          fileUrl: null,
+          fileUrl: scan.image_filename ? `${API_URL}/uploads/${scan.image_filename}` : null,
           fileType: "Image",
           cameraName: scan.camera_name,
           lat: scan.lat,
@@ -112,19 +112,27 @@ function Dashboard() {
 
     setScanState("loading");
 
-    const requestBody = isManualMode
-      ? {
-          location: manualLocation.location,
-          lat: parseFloat(manualLocation.lat),
-          lng: parseFloat(manualLocation.lng),
-        }
-      : { camera_id: selectedCameraId };
+    const formData = new FormData();
+    formData.append("file", selectedFile);
+    if (isManualMode) {
+      formData.append("location", manualLocation.location);
+      formData.append("lat", manualLocation.lat);
+      formData.append("lng", manualLocation.lng);
+    } else {
+      formData.append("camera_id", selectedCameraId);
+    }
 
     try {
+      // NOTE: no "Content-Type" header here on purpose. The browser sets it
+      // automatically for FormData (including a required boundary string),
+      // so setting it manually breaks the upload. This is why we can't just
+      // reuse authHeaders() here like the other requests below do.
       const response = await fetch(`${API_URL}/api/scans`, {
         method: "POST",
-        headers: authHeaders(),
-        body: JSON.stringify(requestBody),
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: formData,
       });
 
       if (!response.ok) {
@@ -141,7 +149,7 @@ function Dashboard() {
         lat: saved.lat,
         lng: saved.lng,
         fileName: selectedFile.name,
-        fileUrl: URL.createObjectURL(selectedFile),
+        fileUrl: `${API_URL}/uploads/${saved.image_filename}`,
         fileType: selectedFile.type.startsWith("video") ? "Video" : "Image",
       };
 

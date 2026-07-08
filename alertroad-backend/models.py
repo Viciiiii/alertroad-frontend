@@ -33,3 +33,4 @@ class ScanResult(Base):
     camera_name = Column(String, nullable=True)
     lat = Column(Float, nullable=True)
     lng = Column(Float, nullable=True)
+    image_filename = Column(String, nullable=True)
