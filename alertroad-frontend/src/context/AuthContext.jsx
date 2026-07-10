@@ -1,7 +1,7 @@
 import { createContext, useContext, useState } from "react";
 
 const AuthContext = createContext(null);
-const API_URL = "http://localhost:8000";
+const API_URL = "";
 
 function decodeToken(token) {
   try {
