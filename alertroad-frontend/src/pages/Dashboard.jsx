@@ -9,7 +9,7 @@ import AddCameraModal from "../components/AddCameraModal";
 import { useAuth } from "../context/AuthContext";
 import "./Dashboard.css";
 
-const API_URL = "http://localhost:8000";
+const API_URL = "";
 
 // scanState: "idle" | "loading" | "success" | "error" | "no-file-error" | "no-camera-error"
 function Dashboard() {

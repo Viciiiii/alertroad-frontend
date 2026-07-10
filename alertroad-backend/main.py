@@ -5,6 +5,7 @@ import uuid
 from fastapi import FastAPI, Depends, HTTPException, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from database import Base, engine, get_db
 from models import Camera, ScanResult, User
@@ -40,8 +41,8 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 # "uploads/abc123.jpg" becomes reachable at http://localhost:8000/uploads/abc123.jpg
 app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 
-@app.get("/")
-def root():
+@app.get("/api/health")
+def health_check():
     return {"message": "AlertRoad API is running"}
 
 # --- Auth ---
@@ -252,3 +253,20 @@ def delete_scan(
     db.delete(scan)
     db.commit()
     return {"message": "Scan deleted"}
+
+    from fastapi.responses import FileResponse
+
+FRONTEND_DIST = os.path.join("..", "alertroad-frontend", "dist")
+
+app.mount(
+    "/assets",
+    StaticFiles(directory=os.path.join(FRONTEND_DIST, "assets")),
+    name="frontend-assets",
+)
+
+# Catch-all: any URL that isn't an API route or an uploaded file gets the
+# React app's index.html instead, so React Router can handle it client-side
+# (e.g. loading /dashboard directly, or refreshing on it, still works).
+@app.get("/{full_path:path}")
+def serve_frontend(full_path: str):
+    return FileResponse(os.path.join(FRONTEND_DIST, "index.html"))
