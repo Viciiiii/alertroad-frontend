@@ -12,24 +12,26 @@ function Login() {
   const { login } = useAuth();
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError("");
+  e.preventDefault();
+  setError("");
 
-    if (!username.trim() || !password.trim()) {
-      setError("Incorrect Username or Password");
-      return;
-    }
+  const trimmedUsername = username.trim();
 
-    setIsSubmitting(true);
-    try {
-      await login(username, password);
-      navigate("/dashboard");
-    } catch (err) {
-      setError(err.message || "Incorrect Username or Password");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+  if (!trimmedUsername || !password.trim()) {
+    setError("Incorrect Username or Password");
+    return;
+  }
+
+  setIsSubmitting(true);
+  try {
+    await login(trimmedUsername, password);
+    navigate("/dashboard");
+  } catch (err) {
+    setError(err.message || "Incorrect Username or Password");
+  } finally {
+    setIsSubmitting(false);
+  }
+};
 
   return (
     <div className="login-page">
@@ -51,6 +53,7 @@ function Login() {
             className={`login-input ${error ? "login-input-error" : ""}`}
             value={username}
             onChange={(e) => setUsername(e.target.value)}
+            onInput={(e) => setUsername(e.target.value)}
             autoComplete="username"
           />
 
@@ -63,6 +66,7 @@ function Login() {
             className={`login-input ${error ? "login-input-error" : ""}`}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            onInput={(e) => setPassword(e.target.value)}
             autoComplete="current-password"
           />
           {error && <p className="login-error-text">{error}</p>}
