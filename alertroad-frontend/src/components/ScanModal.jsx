@@ -1,16 +1,6 @@
-import { useState, useRef } from "react";
-import "./ScanModal.css";
-import VideoTimeline from "./VideoTimeline";
-import DetectionOverlay from "./DetectionOverlay";
-
-const RISK_COLORS = {
-  High: "#7a1c1c",
-  Medium: "#7a5a1c",
-  Low: "#1c5c2e",
-};
-
 function ScanModal({ scan, onClose, onDelete, isAdmin }) {
   const [showAnnotated, setShowAnnotated] = useState(Boolean(scan.annotatedFileUrl));
+  const [activeTrafficEntry, setActiveTrafficEntry] = useState(null);
   const videoRef = useRef(null);
   const hasAnnotated = Boolean(scan.annotatedFileUrl);
   const isVideo = scan.fileType === "Video";
@@ -22,6 +12,19 @@ function ScanModal({ scan, onClose, onDelete, isAdmin }) {
   // losing loaded metadata, which is what made seeking unreliable before.
   const handleTimelineSeek = (timestampSec) => {
     setShowAnnotated(true);
+
+    // See ScanResult.jsx: look up the nearest sampled timeline entry so the
+    // "vehicles at this moment" readout reflects that exact frame, not the
+    // headline peak-across-the-whole-video number.
+    if (videoTimeline && videoTimeline.length > 0) {
+      const nearest = videoTimeline.reduce((closest, entry) =>
+        Math.abs(entry.timestamp_sec - timestampSec) < Math.abs(closest.timestamp_sec - timestampSec)
+          ? entry
+          : closest
+      );
+      setActiveTrafficEntry(nearest);
+    }
+
     const videoEl = videoRef.current;
     if (!videoEl) return;
 
@@ -31,17 +34,6 @@ function ScanModal({ scan, onClose, onDelete, isAdmin }) {
     const clampedTarget = Number.isFinite(videoEl.duration)
       ? Math.min(timestampSec, Math.max(videoEl.duration - 0.05, 0))
       : timestampSec;
-
-    // TEMP DEBUG: see ScanResult.jsx — strip once seeking works.
-    console.log("[TEMP DEBUG] handleTimelineSeek called", {
-      timestampSec,
-      clampedTarget,
-      readyState: videoEl.readyState,
-      videoElDuration: videoEl.duration,
-      currentTimeBefore: videoEl.currentTime,
-      networkState: videoEl.networkState,
-      src: videoEl.currentSrc,
-    });
 
     const doSeek = () => {
       videoEl.pause();
@@ -137,6 +129,14 @@ function ScanModal({ scan, onClose, onDelete, isAdmin }) {
             videoRef={videoRef}
           />
         )}
+
+        {isVideo && videoTimeline && (
+          <p className="scan-modal-media-note">
+            {activeTrafficEntry
+              ? `${activeTrafficEntry.traffic} vehicle${activeTrafficEntry.traffic === 1 ? "" : "s"} at ${activeTrafficEntry.timestamp_sec}s`
+              : "Click a point on the timeline to see vehicles at that moment"}
+          </p>
+        )}
         </div>
 
         <div className="scan-modal-info">
@@ -179,7 +179,7 @@ function ScanModal({ scan, onClose, onDelete, isAdmin }) {
               <p className="scan-modal-stat-value">{scan.confidence}%</p>
             </div>
             <div className="scan-modal-stat-card">
-              <p className="scan-modal-stat-label">Traffic</p>
+              <p className="scan-modal-stat-label">Peak traffic</p>
               <p className="scan-modal-stat-value">{scan.traffic} veh</p>
             </div>
           </div>

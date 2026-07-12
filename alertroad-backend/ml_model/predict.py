@@ -287,6 +287,7 @@ def _predict_video(file_path):
             "potholes": r["potholes"],
             "cracks": r["cracks"],
             "confidence": r["confidence"],
+            "traffic": r["traffic"],
             "detections": r["detection_details"]["raw_detections_TEMP_DEBUG"],
         })
         frame_pipeline_results.append(r)
@@ -310,6 +311,19 @@ def _predict_video(file_path):
 
     annotated_image_filename = _save_annotated(worst_result["annotated_bgr"], file_path)
 
+    # Headline traffic = the busiest single sampled frame across the WHOLE
+    # video, not just whichever frame was picked as "worst" for risk. Those
+    # are two different questions — e.g. an all-Low-risk video has no
+    # standout "worst" frame (worst_idx defaults to frame 0, tie-broken by
+    # earliest timestamp), but vehicles can still appear later in the clip.
+    # Using worst_result["traffic"] alone previously reported frame 0's
+    # vehicle count in that case, even when a busier frame existed elsewhere
+    # in the same timeline. NOTE: this is a peak-in-one-frame count, not a
+    # deduplicated total — the same physical vehicle visible across several
+    # consecutive sampled frames is not tracked/merged, so it isn't a true
+    # "vehicles that passed through" count.
+    peak_traffic = max((entry["traffic"] for entry in timeline), default=0)
+
     # Prefix the single-frame risk_reason with when in the video it happened,
     # so the explainability banner still makes sense for a video result.
     risk_reason = (
@@ -332,7 +346,7 @@ def _predict_video(file_path):
         "potholes": worst_result["potholes"],
         "cracks": worst_result["cracks"],
         "confidence": worst_result["confidence"],
-        "traffic": worst_result["traffic"],
+        "traffic": peak_traffic,
         "detection_details": detection_details,
     }
 

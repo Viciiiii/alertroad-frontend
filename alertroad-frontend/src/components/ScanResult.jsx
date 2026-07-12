@@ -7,6 +7,7 @@ function ScanResult({ scan, onUploadAnother }) {
   // Default to the annotated (bounding-box) view when one exists, since
   // that's the more useful view — falls back to the raw upload otherwise.
   const [showAnnotated, setShowAnnotated] = useState(Boolean(scan.annotatedFileUrl));
+  const [activeTrafficEntry, setActiveTrafficEntry] = useState(null);
   const videoRef = useRef(null);
 
   const hasAnnotated = Boolean(scan.annotatedFileUrl);
@@ -21,6 +22,19 @@ function ScanResult({ scan, onUploadAnother }) {
   // remount losing already-loaded metadata (the old bug this replaces).
   const handleTimelineSeek = (timestampSec) => {
     setShowAnnotated(true); // jump to the boxes-visible view
+
+    // Find the sampled timeline entry nearest the clicked timestamp so the
+    // "vehicles at this moment" readout reflects that exact frame's own
+    // vehicle count, not the headline peak-across-the-whole-video number.
+    if (videoTimeline && videoTimeline.length > 0) {
+      const nearest = videoTimeline.reduce((closest, entry) =>
+        Math.abs(entry.timestamp_sec - timestampSec) < Math.abs(closest.timestamp_sec - timestampSec)
+          ? entry
+          : closest
+      );
+      setActiveTrafficEntry(nearest);
+    }
+
     const videoEl = videoRef.current;
     if (!videoEl) return;
 
@@ -32,9 +46,6 @@ function ScanResult({ scan, onUploadAnother }) {
       ? Math.min(timestampSec, Math.max(videoEl.duration - 0.05, 0))
       : timestampSec;
 
-    // TEMP DEBUG: trace exactly what the video element reports before and
-    // after we touch it, so we can see in devtools whether currentTime is
-    // actually taking effect or getting reverted. Strip once seeking works.
     const doSeek = () => {
       // Pausing first, then waiting for the browser's own "seeked" event
       // before calling play(), avoids a race in Chrome/Edge where setting
@@ -119,6 +130,14 @@ function ScanResult({ scan, onUploadAnother }) {
             videoRef={videoRef}
           />
         )}
+
+        {isVideo && videoTimeline && (
+          <p className="scan-media-note">
+            {activeTrafficEntry
+              ? `${activeTrafficEntry.traffic} vehicle${activeTrafficEntry.traffic === 1 ? "" : "s"} at ${activeTrafficEntry.timestamp_sec}s`
+              : "Click a point on the timeline to see vehicles at that moment"}
+          </p>
+        )}
         </div>
 
         <div className="scan-info-column">
@@ -156,7 +175,7 @@ function ScanResult({ scan, onUploadAnother }) {
               <p className="scan-stat-value">{scan.confidence}%</p>
             </div>
             <div className="scan-stat-card">
-              <p className="scan-stat-label">Traffic</p>
+              <p className="scan-stat-label">Peak traffic</p>
               <p className="scan-stat-value">{scan.traffic} veh</p>
             </div>
           </div>
