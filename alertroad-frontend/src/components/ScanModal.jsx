@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
 import "./ScanModal.css";
 import VideoTimeline from "./VideoTimeline";
+import DetectionOverlay from "./DetectionOverlay";
 
 const RISK_COLORS = {
   High: "#7a1c1c",
@@ -16,9 +17,11 @@ function ScanModal({ scan, onClose, onDelete, isAdmin }) {
   const videoTimeline = scan.detection_details?.video_timeline;
   const videoDurationSec = scan.detection_details?.video_duration_sec;
 
+  // See ScanResult.jsx: the <video> element stays mounted at all times now,
+  // so toggling views just shows/hides the overlay boxes — no more remount
+  // losing loaded metadata, which is what made seeking unreliable before.
   const handleTimelineSeek = (timestampSec) => {
-  setShowAnnotated(false);
-  requestAnimationFrame(() => {
+    setShowAnnotated(true);
     const videoEl = videoRef.current;
     if (!videoEl) return;
     const seekAndPlay = () => {
@@ -30,8 +33,7 @@ function ScanModal({ scan, onClose, onDelete, isAdmin }) {
     } else {
       videoEl.addEventListener("loadedmetadata", seekAndPlay, { once: true });
     }
-  });
-};
+  };
 
   const handleBackdropClick = () => {
     onClose();
@@ -73,18 +75,19 @@ function ScanModal({ scan, onClose, onDelete, isAdmin }) {
             </div>
           )}
 
-          {showAnnotated && hasAnnotated ? (
+          {isVideo ? (
+            <>
+              <video ref={videoRef} className="scan-modal-media" src={scan.fileUrl} controls />
+              {showAnnotated && videoTimeline && (
+                <DetectionOverlay videoRef={videoRef} timeline={videoTimeline} />
+              )}
+            </>
+          ) : showAnnotated && hasAnnotated ? (
             <img
               className="scan-modal-media"
               src={scan.annotatedFileUrl}
-              alt={
-                isVideo
-                  ? "Detected road damage, annotated frame from video"
-                  : "Detected road damage with bounding boxes"
-              }
+              alt="Detected road damage with bounding boxes"
             />
-          ) : isVideo ? (
-            <video ref={videoRef} className="scan-modal-media" src={scan.fileUrl} controls />
           ) : (
             <img
               className="scan-modal-media"
@@ -93,10 +96,10 @@ function ScanModal({ scan, onClose, onDelete, isAdmin }) {
             />
           )}
 
-          {hasAnnotated && showAnnotated && isVideo && (
+          {isVideo && showAnnotated && (
             <p className="scan-modal-media-note">
-              Showing the worst-risk frame found in the video, not the full
-              clip — see the timeline below for when it occurred.
+              Boxes reflect the nearest sampled frame (~1/sec) and may lag
+              slightly behind fast motion.
             </p>
           )}
         </div>
@@ -106,6 +109,7 @@ function ScanModal({ scan, onClose, onDelete, isAdmin }) {
             timeline={videoTimeline}
             durationSec={videoDurationSec}
             onSeek={handleTimelineSeek}
+            videoRef={videoRef}
           />
         )}
         </div>

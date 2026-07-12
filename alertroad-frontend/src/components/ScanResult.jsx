@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
 import "./ScanResult.css";
 import VideoTimeline from "./VideoTimeline";
+import DetectionOverlay from "./DetectionOverlay";
 
 function ScanResult({ scan, onUploadAnother }) {
   // Default to the annotated (bounding-box) view when one exists, since
@@ -13,12 +14,13 @@ function ScanResult({ scan, onUploadAnother }) {
   const videoTimeline = scan.detection_details?.video_timeline;
   const videoDurationSec = scan.detection_details?.video_duration_sec;
 
-  // Jump the actual <video> element to a timestamp. Only works while the
-  // original video is visible (the annotated view is one static frame, not
-  // a player), so switch views first if needed.
- const handleTimelineSeek = (timestampSec) => {
-  setShowAnnotated(false);
-  requestAnimationFrame(() => {
+  // For videos, the SAME <video> element now stays mounted at all times —
+  // toggling "Detected damage" vs "Original video" just shows/hides the
+  // DetectionOverlay boxes on top, it no longer swaps between an <img>
+  // and a <video>. That's what makes this seek reliable: there's no
+  // remount losing already-loaded metadata (the old bug this replaces).
+  const handleTimelineSeek = (timestampSec) => {
+    setShowAnnotated(true); // jump to the boxes-visible view
     const videoEl = videoRef.current;
     if (!videoEl) return;
     const seekAndPlay = () => {
@@ -30,8 +32,7 @@ function ScanResult({ scan, onUploadAnother }) {
     } else {
       videoEl.addEventListener("loadedmetadata", seekAndPlay, { once: true });
     }
-  });
-};
+  };
 
   return (
     <div className="scan-result">
@@ -61,26 +62,27 @@ function ScanResult({ scan, onUploadAnother }) {
             </div>
           )}
 
-          {showAnnotated && hasAnnotated ? (
+          {isVideo ? (
+            <>
+              <video ref={videoRef} className="scan-media" src={scan.fileUrl} controls />
+              {showAnnotated && videoTimeline && (
+                <DetectionOverlay videoRef={videoRef} timeline={videoTimeline} />
+              )}
+            </>
+          ) : showAnnotated && hasAnnotated ? (
             <img
               className="scan-media"
               src={scan.annotatedFileUrl}
-              alt={
-                isVideo
-                  ? "Detected road damage, annotated frame from video"
-                  : "Detected road damage with bounding boxes"
-              }
+              alt="Detected road damage with bounding boxes"
             />
-          ) : isVideo ? (
-            <video ref={videoRef} className="scan-media" src={scan.fileUrl} controls />
           ) : (
             <img className="scan-media" src={scan.fileUrl} alt="Scanned road" />
           )}
 
-          {hasAnnotated && showAnnotated && isVideo && (
+          {isVideo && showAnnotated && (
             <p className="scan-media-note">
-              Showing the worst-risk frame found in the video, not the full
-              clip — see the timeline below for when it occurred.
+              Boxes reflect the nearest sampled frame (~1/sec) and may lag
+              slightly behind fast motion.
             </p>
           )}
         </div>
@@ -90,6 +92,7 @@ function ScanResult({ scan, onUploadAnother }) {
             timeline={videoTimeline}
             durationSec={videoDurationSec}
             onSeek={handleTimelineSeek}
+            videoRef={videoRef}
           />
         )}
         </div>

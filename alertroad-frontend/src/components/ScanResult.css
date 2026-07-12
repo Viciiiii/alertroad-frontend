@@ -57,6 +57,14 @@
   display: block;
 }
 
+/* The custom "Risk over time" bar is the real timeline now, so hide the
+   video's own built-in scrubber to avoid two conflicting seek bars.
+   Webkit-only (Chrome/Edge/Safari) — Firefox doesn't expose a pseudo-
+   element hook for this, so it'll still show its native seek bar there. */
+video.scan-media::-webkit-media-controls-timeline {
+  display: none;
+}
+
 .scan-media-toggle {
   position: absolute;
   top: 12px;

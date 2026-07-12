@@ -71,6 +71,12 @@
   display: block;
 }
 
+/* See ScanResult.css — same reasoning: the risk-over-time bar is the
+   real timeline now, hide the video's own built-in scrubber. Webkit-only. */
+video.scan-modal-media::-webkit-media-controls-timeline {
+  display: none;
+}
+
 .scan-modal-media-toggle {
   position: absolute;
   top: 10px;

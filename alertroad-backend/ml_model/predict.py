@@ -287,6 +287,7 @@ def _predict_video(file_path):
             "potholes": r["potholes"],
             "cracks": r["cracks"],
             "confidence": r["confidence"],
+            "detections": r["detection_details"]["raw_detections_TEMP_DEBUG"],
         })
         frame_pipeline_results.append(r)
 
