@@ -33,7 +33,7 @@ FEATURE_COLUMNS:
 - image_height
 - anomaly_density
 - is_congestion_anomaly
-CONF_THRESHOLD: 0.05
+CONF_THRESHOLD: 0.25
 VEHICLE_CONF_THRESHOLD: 0.3
 VEHICLE_COCO_CLASSES:
   2: car

@@ -1,13 +1,32 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import "./ScanResult.css";
+import VideoTimeline from "./VideoTimeline";
 
 function ScanResult({ scan, onUploadAnother }) {
   // Default to the annotated (bounding-box) view when one exists, since
   // that's the more useful view — falls back to the raw upload otherwise.
   const [showAnnotated, setShowAnnotated] = useState(Boolean(scan.annotatedFileUrl));
+  const videoRef = useRef(null);
 
   const hasAnnotated = Boolean(scan.annotatedFileUrl);
   const isVideo = scan.fileType === "Video";
+  const videoTimeline = scan.detection_details?.video_timeline;
+  const videoDurationSec = scan.detection_details?.video_duration_sec;
+
+  // Jump the actual <video> element to a timestamp. Only works while the
+  // original video is visible (the annotated view is one static frame, not
+  // a player), so switch views first if needed.
+  const handleTimelineSeek = (timestampSec) => {
+    setShowAnnotated(false);
+    // Wait a tick for the <video> to mount if we just switched views away
+    // from the annotated <img>.
+    requestAnimationFrame(() => {
+      if (videoRef.current) {
+        videoRef.current.currentTime = timestampSec;
+        videoRef.current.play();
+      }
+    });
+  };
 
   return (
     <div className="scan-result">
@@ -18,6 +37,7 @@ function ScanResult({ scan, onUploadAnother }) {
       </div>
 
       <div className="scan-result-grid">
+        <div className="scan-media-column">
         <div className="scan-media-wrapper">
           {hasAnnotated && (
             <div className="scan-media-toggle">
@@ -47,17 +67,26 @@ function ScanResult({ scan, onUploadAnother }) {
               }
             />
           ) : isVideo ? (
-            <video className="scan-media" src={scan.fileUrl} controls />
+            <video ref={videoRef} className="scan-media" src={scan.fileUrl} controls />
           ) : (
             <img className="scan-media" src={scan.fileUrl} alt="Scanned road" />
           )}
 
           {hasAnnotated && showAnnotated && isVideo && (
             <p className="scan-media-note">
-              Showing a single annotated frame extracted from the video, not
-              the full clip.
+              Showing the worst-risk frame found in the video, not the full
+              clip — see the timeline below for when it occurred.
             </p>
           )}
+        </div>
+
+        {isVideo && videoTimeline && (
+          <VideoTimeline
+            timeline={videoTimeline}
+            durationSec={videoDurationSec}
+            onSeek={handleTimelineSeek}
+          />
+        )}
         </div>
 
         <div className="scan-info-column">

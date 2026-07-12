@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import "./ScanModal.css";
+import VideoTimeline from "./VideoTimeline";
 
 const RISK_COLORS = {
   High: "#7a1c1c",
@@ -9,8 +10,21 @@ const RISK_COLORS = {
 
 function ScanModal({ scan, onClose, onDelete, isAdmin }) {
   const [showAnnotated, setShowAnnotated] = useState(Boolean(scan.annotatedFileUrl));
+  const videoRef = useRef(null);
   const hasAnnotated = Boolean(scan.annotatedFileUrl);
   const isVideo = scan.fileType === "Video";
+  const videoTimeline = scan.detection_details?.video_timeline;
+  const videoDurationSec = scan.detection_details?.video_duration_sec;
+
+  const handleTimelineSeek = (timestampSec) => {
+    setShowAnnotated(false);
+    requestAnimationFrame(() => {
+      if (videoRef.current) {
+        videoRef.current.currentTime = timestampSec;
+        videoRef.current.play();
+      }
+    });
+  };
 
   const handleBackdropClick = () => {
     onClose();
@@ -33,6 +47,7 @@ function ScanModal({ scan, onClose, onDelete, isAdmin }) {
           ×
         </button>
 
+        <div className="scan-modal-media-column">
         <div className="scan-modal-media-wrapper">
           {hasAnnotated && (
             <div className="scan-modal-media-toggle">
@@ -62,7 +77,7 @@ function ScanModal({ scan, onClose, onDelete, isAdmin }) {
               }
             />
           ) : isVideo ? (
-            <video className="scan-modal-media" src={scan.fileUrl} controls />
+            <video ref={videoRef} className="scan-modal-media" src={scan.fileUrl} controls />
           ) : (
             <img
               className="scan-modal-media"
@@ -73,10 +88,19 @@ function ScanModal({ scan, onClose, onDelete, isAdmin }) {
 
           {hasAnnotated && showAnnotated && isVideo && (
             <p className="scan-modal-media-note">
-              Showing a single annotated frame extracted from the video, not
-              the full clip.
+              Showing the worst-risk frame found in the video, not the full
+              clip — see the timeline below for when it occurred.
             </p>
           )}
+        </div>
+
+        {isVideo && videoTimeline && (
+          <VideoTimeline
+            timeline={videoTimeline}
+            durationSec={videoDurationSec}
+            onSeek={handleTimelineSeek}
+          />
+        )}
         </div>
 
         <div className="scan-modal-info">
