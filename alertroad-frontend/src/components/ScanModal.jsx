@@ -17,14 +17,21 @@ function ScanModal({ scan, onClose, onDelete, isAdmin }) {
   const videoDurationSec = scan.detection_details?.video_duration_sec;
 
   const handleTimelineSeek = (timestampSec) => {
-    setShowAnnotated(false);
-    requestAnimationFrame(() => {
-      if (videoRef.current) {
-        videoRef.current.currentTime = timestampSec;
-        videoRef.current.play();
-      }
-    });
-  };
+  setShowAnnotated(false);
+  requestAnimationFrame(() => {
+    const videoEl = videoRef.current;
+    if (!videoEl) return;
+    const seekAndPlay = () => {
+      videoEl.currentTime = timestampSec;
+      videoEl.play();
+    };
+    if (videoEl.readyState >= 1) {
+      seekAndPlay();
+    } else {
+      videoEl.addEventListener("loadedmetadata", seekAndPlay, { once: true });
+    }
+  });
+};
 
   const handleBackdropClick = () => {
     onClose();

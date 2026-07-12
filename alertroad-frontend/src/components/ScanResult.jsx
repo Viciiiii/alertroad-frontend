@@ -16,17 +16,22 @@ function ScanResult({ scan, onUploadAnother }) {
   // Jump the actual <video> element to a timestamp. Only works while the
   // original video is visible (the annotated view is one static frame, not
   // a player), so switch views first if needed.
-  const handleTimelineSeek = (timestampSec) => {
-    setShowAnnotated(false);
-    // Wait a tick for the <video> to mount if we just switched views away
-    // from the annotated <img>.
-    requestAnimationFrame(() => {
-      if (videoRef.current) {
-        videoRef.current.currentTime = timestampSec;
-        videoRef.current.play();
-      }
-    });
-  };
+ const handleTimelineSeek = (timestampSec) => {
+  setShowAnnotated(false);
+  requestAnimationFrame(() => {
+    const videoEl = videoRef.current;
+    if (!videoEl) return;
+    const seekAndPlay = () => {
+      videoEl.currentTime = timestampSec;
+      videoEl.play();
+    };
+    if (videoEl.readyState >= 1) {
+      seekAndPlay();
+    } else {
+      videoEl.addEventListener("loadedmetadata", seekAndPlay, { once: true });
+    }
+  });
+};
 
   return (
     <div className="scan-result">
