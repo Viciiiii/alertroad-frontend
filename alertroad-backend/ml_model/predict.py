@@ -247,15 +247,96 @@ def _predict_image(file_path):
     }
 
 
+def _box_iou(a, b):
+    """Standard intersection-over-union between two [x1,y1,x2,y2] boxes."""
+    ax1, ay1, ax2, ay2 = a
+    bx1, by1, bx2, by2 = b
+    ix1, iy1 = max(ax1, bx1), max(ay1, by1)
+    ix2, iy2 = min(ax2, bx2), min(ay2, by2)
+    iw, ih = max(0.0, ix2 - ix1), max(0.0, iy2 - iy1)
+    inter = iw * ih
+    if inter <= 0:
+        return 0.0
+    area_a = max(0.0, ax2 - ax1) * max(0.0, ay2 - ay1)
+    area_b = max(0.0, bx2 - bx1) * max(0.0, by2 - by1)
+    union = area_a + area_b - inter
+    return inter / union if union > 0 else 0.0
+
+
+def _count_distinct_objects(timeline, bucket_name, iou_threshold=0.3, max_gap_frames=3):
+    """
+    Approximate count of DISTINCT physical objects of a given damage bucket
+    across the whole sampled timeline, instead of one frame's count. Keeps
+    a persistent list of "known" objects across ALL frames processed so
+    far — not just the immediately previous one — so an object that
+    briefly drops out of view for a sample or two (occlusion, a missed
+    detection) and then reappears is still recognized as the same object
+    instead of being counted again.
+
+    Matching: in each frame, a detection is matched against the best-
+    overlapping (highest IOU >= iou_threshold) object that's still
+    "active" — last seen within max_gap_frames samples ago — and not
+    already claimed by another detection in the same frame. A match
+    updates that object's last-seen position/frame; no match starts a new
+    object. An object unmatched for MORE than max_gap_frames consecutive
+    samples stops being eligible for future matches, so the same physical
+    spot detected again much later is (reasonably) treated as new rather
+    than assumed to be the same object after a long, unexplained gap.
+
+    LIMITATION — read before trusting this as a ground-truth count:
+    sampling is only ~1 frame/sec (VIDEO_SAMPLE_FPS) and the footage is a
+    moving camera (dashcam/CCTV), so this only tracks by position overlap,
+    not true visual identity. This can both undercount (two different
+    objects occupying a similar position get merged) and overcount (one
+    object's gap exceeds max_gap_frames and gets treated as new). It's a
+    best-effort approximation, not a verified count.
+    """
+    tracks = []  # each: {"box": last known [x1,y1,x2,y2], "last_seen": frame_idx}
+    total_created = 0
+
+    for frame_idx, frame in enumerate(timeline):
+        cur_boxes = [
+            d["bbox_xyxy"] for d in frame["detections"] if d["bucket"] == bucket_name
+        ]
+        active_indices = [
+            i for i, t in enumerate(tracks)
+            if frame_idx - t["last_seen"] <= max_gap_frames
+        ]
+        claimed = set()
+        for box in cur_boxes:
+            best_iou, best_i = 0.0, -1
+            for i in active_indices:
+                if i in claimed:
+                    continue
+                score = _box_iou(box, tracks[i]["box"])
+                if score > best_iou:
+                    best_iou, best_i = score, i
+            if best_iou >= iou_threshold:
+                tracks[best_i]["box"] = box
+                tracks[best_i]["last_seen"] = frame_idx
+                claimed.add(best_i)
+            else:
+                tracks.append({"box": box, "last_seen": frame_idx})
+                total_created += 1
+
+    return total_created
+
+
 def _predict_video(file_path):
     """
     Samples frames across the whole video (~1/sec, capped at
     VIDEO_MAX_FRAMES) instead of just the middle frame, runs the full
     pipeline on each, and builds a timeline the frontend can use to mark
-    exactly when damage was detected. The overall result shown on the
-    dashboard (risk_level, annotated image, stats) comes from the WORST
-    frame in the timeline, not an arbitrary one — so a brief pothole in an
-    otherwise-clean video still surfaces as the headline risk.
+    exactly when damage was detected. risk_level, risk_reason, and the
+    annotated image come from the WORST frame in the timeline, not an
+    arbitrary one — so a brief pothole in an otherwise-clean video still
+    surfaces as the headline risk. potholes/cracks/confidence/traffic, on
+    the other hand, are aggregated across the WHOLE timeline (see below) —
+    using worst_result alone for those would report only whatever that one
+    frame happened to contain, which is misleading whenever the
+    worst-risk moment and the actual damage don't coincide in the same
+    sampled frame (e.g. a frame flagged purely by traffic volume, with
+    zero damage detections of its own).
     """
     cap = cv2.VideoCapture(file_path)
     if not cap.isOpened():
@@ -264,14 +345,31 @@ def _predict_video(file_path):
     video_fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
     total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
     duration_sec = total_frames / video_fps if video_fps > 0 else 0
-    frame_interval = max(1, int(round(video_fps / VIDEO_SAMPLE_FPS)))
+
+    # VIDEO_SAMPLE_FPS (~1/sec) and VIDEO_MAX_FRAMES (20) were designed
+    # together assuming most uploads are roughly <=20s — sampling every
+    # video_fps-th frame for up to 20 samples naturally covers a ~20s clip
+    # start to finish. For anything LONGER than that, always advancing by
+    # a fixed 1-second step and stopping once 20 samples are taken means
+    # only the first ~20 seconds ever get analyzed — everything after that
+    # is silently never sampled at all, even though the timeline/overlay
+    # still "cover" the full duration visually (the last real sample just
+    # gets stretched over the unsampled remainder, which looks like a
+    # detection box "stuck" near the end when it's actually stale data
+    # from ~20s in). Instead, cap at VIDEO_MAX_FRAMES samples spread EVENLY
+    # across the whole video when duration would otherwise need more than
+    # that many 1-second samples, so long videos get full-duration coverage
+    # (at a coarser interval) rather than dense-but-partial coverage.
+    approx_samples_at_1fps = max(1, int(duration_sec * VIDEO_SAMPLE_FPS))
+    num_samples = min(VIDEO_MAX_FRAMES, approx_samples_at_1fps)
+    frame_interval = max(1, total_frames // num_samples) if num_samples > 0 else max(1, total_frames)
 
     timeline = []
     frame_pipeline_results = []  # keep full results alongside timeline entries
     frame_idx = 0
     sampled_count = 0
 
-    while sampled_count < VIDEO_MAX_FRAMES:
+    while sampled_count < num_samples:
         cap.set(cv2.CAP_PROP_POS_FRAMES, frame_idx)
         success, frame = cap.read()
         if not success:
@@ -324,6 +422,41 @@ def _predict_video(file_path):
     # "vehicles that passed through" count.
     peak_traffic = max((entry["traffic"] for entry in timeline), default=0)
 
+    # potholes/cracks previously came from worst_result alone (whichever
+    # single frame had the highest risk_level — that frame is picked for
+    # RISK, not for damage count), which meant a video could show
+    # "potholes: 0" even when a pothole box was plainly visible in the
+    # overlay at another timestamp, just because the worst-risk moment
+    # happened to be a traffic-driven frame with no damage of its own.
+    # Track boxes across the whole video (with a short-gap memory, see
+    # _count_distinct_objects) instead, to get an actual "how many
+    # separate potholes were seen in this video" count. Cracks are summed
+    # across their three sub-buckets separately, since a longitudinal
+    # crack should never be matched against an alligator crack as "the
+    # same object."
+    total_potholes = _count_distinct_objects(timeline, "pothole")
+    total_cracks = sum(
+        _count_distinct_objects(timeline, bucket)
+        for bucket in ("longitudinal_crack", "transverse_crack", "alligator_crack")
+    )
+
+    # Same root cause again: confidence previously came from
+    # worst_result["confidence"], the average detection confidence of
+    # ONLY the worst-risk frame. If that frame had zero damage detections
+    # (e.g. flagged purely by traffic volume), its confidence list was
+    # empty and this reported a flat 0% — even though real damage with a
+    # real confidence score was detected elsewhere in the same video.
+    # Average across every individual damage detection found anywhere in
+    # the video instead, so the number reflects the whole clip rather than
+    # whichever single frame won "worst."
+    all_confidences = [
+        d["confidence"] for entry in timeline for d in entry["detections"]
+    ]
+    overall_confidence = (
+        round(sum(all_confidences) / len(all_confidences) * 100)
+        if all_confidences else 0
+    )
+
     # Prefix the single-frame risk_reason with when in the video it happened,
     # so the explainability banner still makes sense for a video result.
     risk_reason = (
@@ -343,9 +476,9 @@ def _predict_video(file_path):
         "damage_detected": worst_result["damage_detected"],
         "risk_reason": risk_reason,
         "annotated_image_filename": annotated_image_filename,
-        "potholes": worst_result["potholes"],
-        "cracks": worst_result["cracks"],
-        "confidence": worst_result["confidence"],
+        "potholes": total_potholes,
+        "cracks": total_cracks,
+        "confidence": overall_confidence,
         "traffic": peak_traffic,
         "detection_details": detection_details,
     }
