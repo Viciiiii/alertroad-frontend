@@ -9,3 +9,9 @@ passlib==1.7.4
 bcrypt==4.0.1
 python-jose[cryptography]==3.3.0
 python-multipart==0.0.9
+ultralytics==8.4.0
+scikit-learn==1.6.1
+joblib==1.4.2
+pyyaml==6.0.2
+pandas==2.2.3
+numpy==1.26.4

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Float, Integer, Boolean
+from sqlalchemy import Column, String, Float, Integer, Boolean, JSON
 from database import Base
 
 class User(Base):
@@ -34,3 +34,4 @@ class ScanResult(Base):
     lat = Column(Float, nullable=True)
     lng = Column(Float, nullable=True)
     image_filename = Column(String, nullable=True)
+    detection_details = Column(JSON, nullable=True)

@@ -19,6 +19,7 @@ from auth import (
     get_current_user, get_current_admin,
 )
 from typing import List, Optional
+from ml_model.predict import predict_road_risk
 
 app = FastAPI()
 
@@ -197,31 +198,22 @@ def create_scan(
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
 
-    # PLACEHOLDER: replace this block once the real detection model is ready.
-    potholes = random.randint(0, 6)
-    cracks = random.randint(0, 6)
-    confidence = random.randint(70, 99)
-    traffic = random.randint(0, 30)
-
-    total_damage = potholes + cracks
-    if total_damage >= 6:
-        risk_level = "High"
-    elif total_damage >= 3:
-        risk_level = "Medium"
-    else:
-        risk_level = "Low"
+   # Run the real AlertRoad detection pipeline: fine-tuned YOLO (damage) +
+    # COCO YOLO (vehicles/traffic) + Random Forest (risk classification).
+    prediction = predict_road_risk(file_path)
 
     new_scan = ScanResult(
         location=location,
-        risk_level=risk_level,
-        potholes=potholes,
-        cracks=cracks,
-        confidence=confidence,
-        traffic=traffic,
+        risk_level=prediction["risk_level"],
+        potholes=prediction["potholes"],
+        cracks=prediction["cracks"],
+        confidence=prediction["confidence"],
+        traffic=prediction["traffic"],
         camera_name=camera_name,
         lat=lat,
         lng=lng,
         image_filename=unique_filename,
+        detection_details=prediction["detection_details"],
     )
     db.add(new_scan)
     db.commit()
@@ -253,8 +245,6 @@ def delete_scan(
     db.delete(scan)
     db.commit()
     return {"message": "Scan deleted"}
-
-    from fastapi.responses import FileResponse
 
 FRONTEND_DIST = os.path.join("..", "alertroad-frontend", "dist")
 

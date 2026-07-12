@@ -31,6 +31,7 @@ class ScanResultSchema(BaseModel):
     lat: Optional[float] = None
     lng: Optional[float] = None
     image_filename: Optional[str] = None
+    detection_details: Optional[dict] = None
 
     class Config:
         from_attributes = True
