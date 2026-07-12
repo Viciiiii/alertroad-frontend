@@ -65,6 +65,14 @@ video.scan-media::-webkit-media-controls-timeline {
   display: none;
 }
 
+/* Play/pause and the time readout now live in the Risk-over-time bar
+   below the video instead, so hide the native ones to avoid two of each. */
+video.scan-media::-webkit-media-controls-play-button,
+video.scan-media::-webkit-media-controls-current-time-display,
+video.scan-media::-webkit-media-controls-time-remaining-display {
+  display: none;
+}
+
 .scan-media-toggle {
   position: absolute;
   top: 12px;

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import "./VideoTimeline.css";
 
 // Same traffic-light convention as the Road Risk Map legend (Low/Medium/High).
@@ -13,39 +13,104 @@ const RISK_COLORS = {
 // minor) finding.
 const NO_DETECTION_COLOR = "#9ca3af";
 
+function formatTime(sec) {
+  if (!Number.isFinite(sec) || sec < 0) sec = 0;
+  const m = Math.floor(sec / 60);
+  const s = Math.floor(sec % 60);
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
+
 /**
  * Renders a horizontal timeline bar beneath a scanned video, with one
  * colored segment per sampled frame — gray where no damage was detected,
  * green/amber/red where it was, based on that frame's risk level. Doubles
- * as the actual scrubber for the video: clicking a segment seeks+plays,
+ * as the actual scrubber for the video: clicking anywhere seeks+plays,
  * and a playhead marker tracks the video's current position live.
  *
  * timeline: array of { timestamp_sec, risk_level, damage_detected,
  *   potholes, cracks, confidence } — this is exactly
  *   scan.detection_details.video_timeline from the backend.
  * durationSec: total video duration, for positioning segments proportionally.
- * onSeek(timestampSec): called when a segment is clicked.
- * videoRef: ref to the <video> element, used to track playhead position.
+ * onSeek(timestampSec): called when the track is clicked.
+ * videoRef: ref to the <video> element, used to track playhead position
+ *   and to drive the play/pause button.
  */
 function VideoTimeline({ timeline, durationSec, onSeek, videoRef }) {
   const [currentTime, setCurrentTime] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const trackRef = useRef(null);
 
   useEffect(() => {
     const videoEl = videoRef?.current;
     if (!videoEl) return;
     const handleTimeUpdate = () => setCurrentTime(videoEl.currentTime);
+    const handlePlay = () => setIsPlaying(true);
+    const handlePause = () => setIsPlaying(false);
     videoEl.addEventListener("timeupdate", handleTimeUpdate);
-    return () => videoEl.removeEventListener("timeupdate", handleTimeUpdate);
+    videoEl.addEventListener("play", handlePlay);
+    videoEl.addEventListener("pause", handlePause);
+    return () => {
+      videoEl.removeEventListener("timeupdate", handleTimeUpdate);
+      videoEl.removeEventListener("play", handlePlay);
+      videoEl.removeEventListener("pause", handlePause);
+    };
   }, [videoRef]);
 
   if (!timeline || timeline.length === 0 || !durationSec) return null;
 
   const playheadPct = Math.min((currentTime / durationSec) * 100, 100);
 
+  const togglePlay = () => {
+    const videoEl = videoRef?.current;
+    if (!videoEl) return;
+    if (videoEl.paused) {
+      videoEl.play();
+    } else {
+      videoEl.pause();
+    }
+  };
+
+  // Clicking ANYWHERE on the track seeks to the exact point under the
+  // cursor, computed from pixel position — not just to the nearest
+  // sampled frame's start. The per-segment buttons below stay (for their
+  // color/tooltip), but their clicks bubble up here rather than each
+  // handling its own onSeek, so a click in the middle of a wide segment
+  // still lands where you actually clicked instead of snapping to 0.
+  const handleTrackClick = (e) => {
+    const trackEl = trackRef.current;
+    if (!trackEl) return;
+    const rect = trackEl.getBoundingClientRect();
+    const fraction = Math.min(Math.max((e.clientX - rect.left) / rect.width, 0), 1);
+    // TEMP DEBUG: log the raw numbers behind the seek so we can see in
+    // devtools whether the bug is in this calculation or downstream in
+    // the actual video.currentTime assignment. Strip once seeking works.
+    console.log("[TEMP DEBUG] track click", {
+      clientX: e.clientX,
+      rectLeft: rect.left,
+      rectWidth: rect.width,
+      fraction,
+      durationSec,
+      computedTarget: fraction * durationSec,
+    });
+    onSeek(fraction * durationSec);
+  };
+
   return (
     <div className="video-timeline">
       <div className="video-timeline-header">
-        <span className="video-timeline-title">Risk over time</span>
+        <div className="video-timeline-controls">
+          <button
+            type="button"
+            className="video-timeline-play-btn"
+            onClick={togglePlay}
+            aria-label={isPlaying ? "Pause" : "Play"}
+          >
+            {isPlaying ? "❚❚" : "▶"}
+          </button>
+          <span className="video-timeline-time">
+            {formatTime(currentTime)} / {formatTime(durationSec)}
+          </span>
+        </div>
         <div className="video-timeline-legend">
           <span className="video-timeline-legend-item">
             <span className="video-timeline-dot" style={{ backgroundColor: NO_DETECTION_COLOR }} />
@@ -66,7 +131,7 @@ function VideoTimeline({ timeline, durationSec, onSeek, videoRef }) {
         </div>
       </div>
 
-      <div className="video-timeline-track">
+      <div className="video-timeline-track" ref={trackRef} onClick={handleTrackClick}>
         {timeline.map((entry, i) => {
           // Each sampled frame gets a segment spanning from its own
           // timestamp to the next one's (or to the end of the video for
@@ -94,7 +159,6 @@ function VideoTimeline({ timeline, durationSec, onSeek, videoRef }) {
               }${
                 entry.damage_detected ? ` (${entry.potholes} pothole(s), ${entry.cracks} crack(s))` : ""
               }`}
-              onClick={() => onSeek(entry.timestamp_sec)}
             />
           );
         })}

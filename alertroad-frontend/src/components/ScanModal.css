@@ -77,6 +77,13 @@ video.scan-modal-media::-webkit-media-controls-timeline {
   display: none;
 }
 
+/* See ScanResult.css — play/pause and time now live in the timeline bar. */
+video.scan-modal-media::-webkit-media-controls-play-button,
+video.scan-modal-media::-webkit-media-controls-current-time-display,
+video.scan-modal-media::-webkit-media-controls-time-remaining-display {
+  display: none;
+}
+
 .scan-modal-media-toggle {
   position: absolute;
   top: 10px;

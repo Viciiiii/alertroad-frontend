@@ -23,14 +23,51 @@ function ScanResult({ scan, onUploadAnother }) {
     setShowAnnotated(true); // jump to the boxes-visible view
     const videoEl = videoRef.current;
     if (!videoEl) return;
-    const seekAndPlay = () => {
-      videoEl.currentTime = timestampSec;
-      videoEl.play();
+
+    // Clamp to the video's own reported duration once known — it can
+    // differ slightly from the backend's estimate (video_duration_sec),
+    // and assigning a currentTime past the real duration gets silently
+    // clamped/rejected in some browsers.
+    const clampedTarget = Number.isFinite(videoEl.duration)
+      ? Math.min(timestampSec, Math.max(videoEl.duration - 0.05, 0))
+      : timestampSec;
+
+    // TEMP DEBUG: trace exactly what the video element reports before and
+    // after we touch it, so we can see in devtools whether currentTime is
+    // actually taking effect or getting reverted. Strip once seeking works.
+    console.log("[TEMP DEBUG] handleTimelineSeek called", {
+      timestampSec,
+      clampedTarget,
+      readyState: videoEl.readyState,
+      videoElDuration: videoEl.duration,
+      currentTimeBefore: videoEl.currentTime,
+      networkState: videoEl.networkState,
+      src: videoEl.currentSrc,
+    });
+
+    const doSeek = () => {
+      // Pausing first, then waiting for the browser's own "seeked" event
+      // before calling play(), avoids a race in Chrome/Edge where setting
+      // currentTime and calling play() in the same tick — while the video
+      // is still actively playing/decoding — gets the seek silently
+      // dropped, so playback just continues from wherever it already was
+      // (looks like the video "repeating" instead of jumping).
+      videoEl.pause();
+      const onSeeked = () => {
+        console.log("[TEMP DEBUG] seeked event fired, currentTime now:", videoEl.currentTime);
+        videoEl.removeEventListener("seeked", onSeeked);
+        videoEl.play();
+      };
+      videoEl.addEventListener("seeked", onSeeked, { once: true });
+      videoEl.currentTime = clampedTarget;
+      console.log("[TEMP DEBUG] currentTime right after assignment:", videoEl.currentTime);
     };
+
     if (videoEl.readyState >= 1) {
-      seekAndPlay();
+      doSeek();
     } else {
-      videoEl.addEventListener("loadedmetadata", seekAndPlay, { once: true });
+      console.log("[TEMP DEBUG] readyState < 1, waiting for loadedmetadata");
+      videoEl.addEventListener("loadedmetadata", doSeek, { once: true });
     }
   };
 

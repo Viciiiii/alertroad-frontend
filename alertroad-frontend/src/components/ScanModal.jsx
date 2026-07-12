@@ -24,14 +24,42 @@ function ScanModal({ scan, onClose, onDelete, isAdmin }) {
     setShowAnnotated(true);
     const videoEl = videoRef.current;
     if (!videoEl) return;
-    const seekAndPlay = () => {
-      videoEl.currentTime = timestampSec;
-      videoEl.play();
+
+    // See ScanResult.jsx for the reasoning: clamp to the real video
+    // duration, and wait for "seeked" before resuming playback instead of
+    // assuming the seek is instant.
+    const clampedTarget = Number.isFinite(videoEl.duration)
+      ? Math.min(timestampSec, Math.max(videoEl.duration - 0.05, 0))
+      : timestampSec;
+
+    // TEMP DEBUG: see ScanResult.jsx — strip once seeking works.
+    console.log("[TEMP DEBUG] handleTimelineSeek called", {
+      timestampSec,
+      clampedTarget,
+      readyState: videoEl.readyState,
+      videoElDuration: videoEl.duration,
+      currentTimeBefore: videoEl.currentTime,
+      networkState: videoEl.networkState,
+      src: videoEl.currentSrc,
+    });
+
+    const doSeek = () => {
+      videoEl.pause();
+      const onSeeked = () => {
+        console.log("[TEMP DEBUG] seeked event fired, currentTime now:", videoEl.currentTime);
+        videoEl.removeEventListener("seeked", onSeeked);
+        videoEl.play();
+      };
+      videoEl.addEventListener("seeked", onSeeked, { once: true });
+      videoEl.currentTime = clampedTarget;
+      console.log("[TEMP DEBUG] currentTime right after assignment:", videoEl.currentTime);
     };
+
     if (videoEl.readyState >= 1) {
-      seekAndPlay();
+      doSeek();
     } else {
-      videoEl.addEventListener("loadedmetadata", seekAndPlay, { once: true });
+      console.log("[TEMP DEBUG] readyState < 1, waiting for loadedmetadata");
+      videoEl.addEventListener("loadedmetadata", doSeek, { once: true });
     }
   };
 

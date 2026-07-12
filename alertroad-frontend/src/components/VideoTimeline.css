@@ -9,10 +9,38 @@
   margin-bottom: 6px;
 }
 
-.video-timeline-title {
+.video-timeline-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.video-timeline-play-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background-color: #2a2a2a;
+  color: #ffffff;
+  font-size: 9px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.video-timeline-play-btn:hover {
+  background-color: #3a3a3a;
+}
+
+.video-timeline-time {
   font-size: 12px;
   font-weight: 500;
   color: #a3a3a3;
+  font-variant-numeric: tabular-nums;
 }
 
 .video-timeline-legend {
