@@ -2,12 +2,14 @@ import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import {
   RISK_COLORS,
   createTriangleIcon,
+  DEFAULT_CENTER,
   DEFAULT_ZOOM,
   MapResizeHandler,
+  FitBoundsHandler,
 } from "./RiskMap";
 import "./RiskMapModal.css";
 
-function RiskMapModal({ scans, center, onClose }) {
+function RiskMapModal({ scans, onClose }) {
   const handleBackdropClick = () => {
     onClose();
   };
@@ -38,7 +40,7 @@ function RiskMapModal({ scans, center, onClose }) {
 
         <div className="risk-map-modal-map-wrapper">
           <MapContainer
-            center={center}
+            center={DEFAULT_CENTER}
             zoom={DEFAULT_ZOOM}
             scrollWheelZoom={true}
             className="risk-map-modal-container"
@@ -49,6 +51,11 @@ function RiskMapModal({ scans, center, onClose }) {
             />
 
             <MapResizeHandler />
+            <FitBoundsHandler
+              scans={scans}
+              fallbackCenter={DEFAULT_CENTER}
+              fallbackZoom={DEFAULT_ZOOM}
+            />
 
             {scans.map((scan, index) => (
               <Marker

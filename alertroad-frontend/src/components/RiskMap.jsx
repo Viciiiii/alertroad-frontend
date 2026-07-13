@@ -151,16 +151,9 @@ function RiskMap({ scans }) {
     (scan) => typeof scan.lat === "number" && typeof scan.lng === "number"
   );
 
-  let center = DEFAULT_CENTER;
-  if (scansWithCoords.length > 0) {
-    const avgLat =
-      scansWithCoords.reduce((sum, s) => sum + s.lat, 0) /
-      scansWithCoords.length;
-    const avgLng =
-      scansWithCoords.reduce((sum, s) => sum + s.lng, 0) /
-      scansWithCoords.length;
-    center = [avgLat, avgLng];
-  }
+  useEffect(() => {
+    warnAboutCoordinateOutliers(scansWithCoords);
+  }, [scansWithCoords]);
 
   return (
     <div className="risk-map-wrapper">
@@ -182,7 +175,7 @@ function RiskMap({ scans }) {
           normal CSS stacking the way a plain div would. */}
       {!isExpanded && (
         <MapContainer
-          center={center}
+          center={DEFAULT_CENTER}
           zoom={DEFAULT_ZOOM}
           scrollWheelZoom={false}
           className="risk-map-container"
@@ -193,6 +186,11 @@ function RiskMap({ scans }) {
           />
 
           <MapResizeHandler />
+          <FitBoundsHandler
+            scans={scansWithCoords}
+            fallbackCenter={DEFAULT_CENTER}
+            fallbackZoom={DEFAULT_ZOOM}
+          />
 
           {scansWithCoords.map((scan, index) => (
             <Marker
@@ -213,7 +211,6 @@ function RiskMap({ scans }) {
       {isExpanded && (
         <RiskMapModal
           scans={scansWithCoords}
-          center={center}
           onClose={() => setIsExpanded(false)}
         />
       )}
