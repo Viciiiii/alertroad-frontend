@@ -1,5 +1,10 @@
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
-import { RISK_COLORS, createTriangleIcon, DEFAULT_ZOOM } from "./RiskMap";
+import {
+  RISK_COLORS,
+  createTriangleIcon,
+  DEFAULT_ZOOM,
+  MapResizeHandler,
+} from "./RiskMap";
 import "./RiskMapModal.css";
 
 function RiskMapModal({ scans, center, onClose }) {
@@ -42,6 +47,8 @@ function RiskMapModal({ scans, center, onClose }) {
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
+
+            <MapResizeHandler />
 
             {scans.map((scan, index) => (
               <Marker
