@@ -19,6 +19,8 @@ import numpy as np
 import pandas as pd
 from ultralytics import YOLO
 
+from ml_model.video_analysis import count_distinct_objects, compute_video_sample_plan
+
 # --- Paths (relative to this file, so it works no matter where uvicorn is
 #     launched from) ---
 MODEL_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -88,10 +90,12 @@ def _run_frame_pipeline(image_bgr):
 
     bucket_counts = {b: 0 for b in BUCKET_NAMES}
     confidences, box_areas = [], []
-    # TEMP DEBUG: per-detection bbox/confidence/class, kept separate from
-    # the aggregated features below. Added to investigate the two-pothole
-    # false-positive case (joint lines mis-detected as potholes) — revert
-    # once that's resolved, this isn't meant to ship long-term.
+    # Per-detection bbox/confidence/class/bucket. Originally added as a
+    # throwaway debug aid, but this is now load-bearing: _predict_video's
+    # whole-timeline tracker (_count_distinct_objects) and its
+    # all-detections confidence average both consume this list via each
+    # timeline entry's "detections" field, so it's not safe to remove for
+    # image-only requests either — keep it wired through _predict_image too.
     raw_detections = []
 
     boxes = result.boxes
@@ -210,7 +214,7 @@ def _run_frame_pipeline(image_bgr):
             "anomaly_density": feat["anomaly_density"],
             "is_congestion_anomaly": bool(is_congestion_anomaly),
             "risk_probabilities": predicted_proba,
-            "raw_detections_TEMP_DEBUG": raw_detections,
+            "raw_detections": raw_detections,
         },
     }
 
@@ -245,81 +249,6 @@ def _predict_image(file_path):
         "traffic": r["traffic"],
         "detection_details": r["detection_details"],
     }
-
-
-def _box_iou(a, b):
-    """Standard intersection-over-union between two [x1,y1,x2,y2] boxes."""
-    ax1, ay1, ax2, ay2 = a
-    bx1, by1, bx2, by2 = b
-    ix1, iy1 = max(ax1, bx1), max(ay1, by1)
-    ix2, iy2 = min(ax2, bx2), min(ay2, by2)
-    iw, ih = max(0.0, ix2 - ix1), max(0.0, iy2 - iy1)
-    inter = iw * ih
-    if inter <= 0:
-        return 0.0
-    area_a = max(0.0, ax2 - ax1) * max(0.0, ay2 - ay1)
-    area_b = max(0.0, bx2 - bx1) * max(0.0, by2 - by1)
-    union = area_a + area_b - inter
-    return inter / union if union > 0 else 0.0
-
-
-def _count_distinct_objects(timeline, bucket_name, iou_threshold=0.3, max_gap_frames=3):
-    """
-    Approximate count of DISTINCT physical objects of a given damage bucket
-    across the whole sampled timeline, instead of one frame's count. Keeps
-    a persistent list of "known" objects across ALL frames processed so
-    far — not just the immediately previous one — so an object that
-    briefly drops out of view for a sample or two (occlusion, a missed
-    detection) and then reappears is still recognized as the same object
-    instead of being counted again.
-
-    Matching: in each frame, a detection is matched against the best-
-    overlapping (highest IOU >= iou_threshold) object that's still
-    "active" — last seen within max_gap_frames samples ago — and not
-    already claimed by another detection in the same frame. A match
-    updates that object's last-seen position/frame; no match starts a new
-    object. An object unmatched for MORE than max_gap_frames consecutive
-    samples stops being eligible for future matches, so the same physical
-    spot detected again much later is (reasonably) treated as new rather
-    than assumed to be the same object after a long, unexplained gap.
-
-    LIMITATION — read before trusting this as a ground-truth count:
-    sampling is only ~1 frame/sec (VIDEO_SAMPLE_FPS) and the footage is a
-    moving camera (dashcam/CCTV), so this only tracks by position overlap,
-    not true visual identity. This can both undercount (two different
-    objects occupying a similar position get merged) and overcount (one
-    object's gap exceeds max_gap_frames and gets treated as new). It's a
-    best-effort approximation, not a verified count.
-    """
-    tracks = []  # each: {"box": last known [x1,y1,x2,y2], "last_seen": frame_idx}
-    total_created = 0
-
-    for frame_idx, frame in enumerate(timeline):
-        cur_boxes = [
-            d["bbox_xyxy"] for d in frame["detections"] if d["bucket"] == bucket_name
-        ]
-        active_indices = [
-            i for i, t in enumerate(tracks)
-            if frame_idx - t["last_seen"] <= max_gap_frames
-        ]
-        claimed = set()
-        for box in cur_boxes:
-            best_iou, best_i = 0.0, -1
-            for i in active_indices:
-                if i in claimed:
-                    continue
-                score = _box_iou(box, tracks[i]["box"])
-                if score > best_iou:
-                    best_iou, best_i = score, i
-            if best_iou >= iou_threshold:
-                tracks[best_i]["box"] = box
-                tracks[best_i]["last_seen"] = frame_idx
-                claimed.add(best_i)
-            else:
-                tracks.append({"box": box, "last_seen": frame_idx})
-                total_created += 1
-
-    return total_created
 
 
 def _predict_video(file_path):
@@ -359,10 +288,11 @@ def _predict_video(file_path):
     # from ~20s in). Instead, cap at VIDEO_MAX_FRAMES samples spread EVENLY
     # across the whole video when duration would otherwise need more than
     # that many 1-second samples, so long videos get full-duration coverage
-    # (at a coarser interval) rather than dense-but-partial coverage.
-    approx_samples_at_1fps = max(1, int(duration_sec * VIDEO_SAMPLE_FPS))
-    num_samples = min(VIDEO_MAX_FRAMES, approx_samples_at_1fps)
-    frame_interval = max(1, total_frames // num_samples) if num_samples > 0 else max(1, total_frames)
+    # (at a coarser interval) rather than dense-but-partial coverage. See
+    # video_analysis.compute_video_sample_plan for the (unit-tested) math.
+    num_samples, frame_interval = compute_video_sample_plan(
+        duration_sec, total_frames, VIDEO_SAMPLE_FPS, VIDEO_MAX_FRAMES
+    )
 
     timeline = []
     frame_pipeline_results = []  # keep full results alongside timeline entries
@@ -386,7 +316,7 @@ def _predict_video(file_path):
             "cracks": r["cracks"],
             "confidence": r["confidence"],
             "traffic": r["traffic"],
-            "detections": r["detection_details"]["raw_detections_TEMP_DEBUG"],
+            "detections": r["detection_details"]["raw_detections"],
         })
         frame_pipeline_results.append(r)
 
@@ -434,9 +364,9 @@ def _predict_video(file_path):
     # across their three sub-buckets separately, since a longitudinal
     # crack should never be matched against an alligator crack as "the
     # same object."
-    total_potholes = _count_distinct_objects(timeline, "pothole")
+    total_potholes = count_distinct_objects(timeline, "pothole")
     total_cracks = sum(
-        _count_distinct_objects(timeline, bucket)
+        count_distinct_objects(timeline, bucket)
         for bucket in ("longitudinal_crack", "transverse_crack", "alligator_crack")
     )
 
