@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional
 
 class CameraSchema(BaseModel):
@@ -13,10 +13,10 @@ class CameraSchema(BaseModel):
 
 
 class CameraCreate(BaseModel):
-    name: str
-    location: str
-    lat: float
-    lng: float
+    name: str = Field(min_length=1)
+    location: str = Field(min_length=1)
+    lat: float = Field(gt=-90, lt=90)
+    lng: float = Field(gt=-180, lt=180)
 
 
 class ScanResultSchema(BaseModel):

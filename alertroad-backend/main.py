@@ -204,6 +204,11 @@ def create_scan(
                 status_code=400,
                 detail="location, lat, and lng are required when no camera_id is provided",
             )
+        if not (-90 <= lat <= 90) or not (-180 <= lng <= 180):
+            raise HTTPException(
+                status_code=400,
+                detail="lat must be between -90 and 90, and lng between -180 and 180",
+            )
 
         camera_name = "Handheld Device"
 
