@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import "./LocationAutocomplete.css";
+import "./LocationAutoComplete.css";
 
 function LocationAutocomplete({ value, onChange, onSelectLocation }) {
   const [suggestions, setSuggestions] = useState([]);

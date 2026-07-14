@@ -1,5 +1,5 @@
 import { useState } from "react";
-import LocationAutocomplete from "./LocationAutocomplete";
+import LocationAutocomplete from "./LocationAutoComplete";
 import "./AddCameraModal.css";
 
 function AddCameraModal({ onClose, onAddCamera }) {
