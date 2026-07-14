@@ -40,7 +40,11 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 # Serves saved files back out over HTTP, e.g. a file saved as
 # "uploads/abc123.jpg" becomes reachable at http://localhost:8000/uploads/abc123.jpg
-app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
+# NOTE: /uploads used to be a raw StaticFiles mount here, which served any
+# file in UPLOAD_DIR to anyone who knew/guessed the filename, no login
+# required. Replaced with an authenticated route below (see
+# GET /api/uploads/{filename}) so scan images/videos require login like
+# every other piece of scan data.
 
 @app.get("/api/health")
 def health_check():
@@ -158,6 +162,19 @@ def delete_camera(
 @app.get("/api/scans", response_model=List[ScanResultSchema])
 def get_scans(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     return db.query(ScanResult).order_by(ScanResult.id.desc()).all()
+
+# --- Uploaded files (images/videos) ---
+# Replaces the old unauthenticated StaticFiles mount at /uploads. Requires
+# login like every other scan-related endpoint, and uses os.path.basename
+# to strip any directory components from the requested filename so this
+# can't be used to read files outside UPLOAD_DIR (e.g. "../../auth.py").
+@app.get("/api/uploads/{filename}")
+def get_upload(filename: str, current_user: User = Depends(get_current_user)):
+    safe_filename = os.path.basename(filename)
+    file_path = os.path.join(UPLOAD_DIR, safe_filename)
+    if not os.path.isfile(file_path):
+        raise HTTPException(status_code=404, detail="File not found")
+    return FileResponse(file_path)
 
 @app.post("/api/scans", response_model=ScanResultSchema)
 def create_scan(

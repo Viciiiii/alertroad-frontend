@@ -8,6 +8,7 @@ import ScanModal from "../components/ScanModal";
 import InfoSections from "../components/InfoSections";
 import AddCameraModal from "../components/AddCameraModal";
 import { useAuth } from "../context/AuthContext";
+import { fetchAuthenticatedFileUrl } from "../utils/media";
 import "./Dashboard.css";
 
 const API_URL = "";
@@ -53,31 +54,44 @@ function Dashboard() {
   useEffect(() => {
     const loadScans = async () => {
       try {
-        const response = await fetch(`${API_URL}/api/scans`);
+        // NOTE: previously called with no headers at all. /api/scans now
+        // requires login, so this needs the auth header like every other
+        // authenticated request in this file, or it 401s and the dashboard
+        // silently loads with an empty scan list.
+        const response = await fetch(`${API_URL}/api/scans`, {
+          headers: authHeaders(),
+        });
         if (!response.ok) return;
         const data = await response.json();
 
-        const formatted = data.map((scan) => ({
-          ...scan,
-          riskLevel: scan.risk_level,
-          fileUrl: scan.image_filename ? `${API_URL}/uploads/${scan.image_filename}` : null,
-          annotatedFileUrl: scan.annotated_image_filename
-            ? `${API_URL}/uploads/${scan.annotated_image_filename}`
-            : null,
-          damageDetected: scan.damage_detected,
-          riskReason: scan.risk_reason,
-          // Right after a fresh upload (handleClassify below), fileType
-          // comes from the browser's File.type on the actual selected
-          // file. On page load/refresh we only have the DB row, so derive
-          // it from the saved filename's extension instead — matching the
-          // formats UploadSection actually accepts (mp4/mov = Video).
-          fileType: /\.(mp4|mov)$/i.test(scan.image_filename || "")
-            ? "Video"
-            : "Image",
-          cameraName: scan.camera_name,
-          lat: scan.lat,
-          lng: scan.lng,
-        }));
+        // fileUrl/annotatedFileUrl used to be plain "/uploads/<filename>"
+        // strings, since that endpoint was an unauthenticated static mount.
+        // It's now an authenticated route, so <img>/<video src> can't hit
+        // it directly (no way to attach a header) — fetch each file with
+        // the token instead and swap in a blob: URL.
+        const formatted = await Promise.all(
+          data.map(async (scan) => ({
+            ...scan,
+            riskLevel: scan.risk_level,
+            fileUrl: await fetchAuthenticatedFileUrl(scan.image_filename),
+            annotatedFileUrl: await fetchAuthenticatedFileUrl(
+              scan.annotated_image_filename
+            ),
+            damageDetected: scan.damage_detected,
+            riskReason: scan.risk_reason,
+            // Right after a fresh upload (handleClassify below), fileType
+            // comes from the browser's File.type on the actual selected
+            // file. On page load/refresh we only have the DB row, so derive
+            // it from the saved filename's extension instead — matching the
+            // formats UploadSection actually accepts (mp4/mov = Video).
+            fileType: /\.(mp4|mov)$/i.test(scan.image_filename || "")
+              ? "Video"
+              : "Image",
+            cameraName: scan.camera_name,
+            lat: scan.lat,
+            lng: scan.lng,
+          }))
+        );
 
         setRecentScans(formatted);
       } catch (err) {
@@ -87,7 +101,10 @@ function Dashboard() {
 
     const loadCameras = async () => {
       try {
-        const response = await fetch(`${API_URL}/api/cameras`);
+        // Same fix as loadScans above: /api/cameras now requires login too.
+        const response = await fetch(`${API_URL}/api/cameras`, {
+          headers: authHeaders(),
+        });
         if (!response.ok) return;
         const data = await response.json();
         setCameras(data);
@@ -182,10 +199,10 @@ function Dashboard() {
         lat: saved.lat,
         lng: saved.lng,
         fileName: selectedFile.name,
-        fileUrl: `${API_URL}/uploads/${saved.image_filename}`,
-        annotatedFileUrl: saved.annotated_image_filename
-          ? `${API_URL}/uploads/${saved.annotated_image_filename}`
-          : null,
+        fileUrl: await fetchAuthenticatedFileUrl(saved.image_filename),
+        annotatedFileUrl: await fetchAuthenticatedFileUrl(
+          saved.annotated_image_filename
+        ),
         damageDetected: saved.damage_detected,
         riskReason: saved.risk_reason,
         fileType: selectedFile.type.startsWith("video") ? "Video" : "Image",
