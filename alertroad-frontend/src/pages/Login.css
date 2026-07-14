@@ -24,11 +24,10 @@
   padding: 24px 32px;
 }
 
-.logo-diamond {
-  width: 18px;
-  height: 18px;
-  background-color: var(--alertroad-yellow);
-  transform: rotate(45deg);
+.logo-image {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
   display: inline-block;
 }
 

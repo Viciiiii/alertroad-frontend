@@ -19,11 +19,10 @@
   cursor: pointer;
 }
 
-.logo-diamond {
-  width: 16px;
-  height: 16px;
-  background-color: #f5a623;
-  transform: rotate(45deg);
+.logo-image {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
   display: inline-block;
 }
 

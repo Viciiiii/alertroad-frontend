@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import alertroadLogo from "../assets/alertroad-logo.jpg";
 import "./Login.css";
 
 function Login() {
@@ -36,7 +37,7 @@ function Login() {
   return (
     <div className="login-page">
       <div className="login-logo">
-        <span className="logo-diamond" />
+        <img src={alertroadLogo} alt="AlertRoad logo" className="logo-image" />
         <span className="logo-text">ALERTROAD</span>
       </div>
 

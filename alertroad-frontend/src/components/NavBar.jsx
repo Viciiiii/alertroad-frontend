@@ -1,5 +1,6 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import alertroadLogo from "../assets/alertroad-logo.jpg";
 import "./NavBar.css";
 
 function NavBar() {
@@ -42,7 +43,7 @@ function NavBar() {
         className={`navbar-logo${!isOnDashboard ? " navbar-logo-clickable" : ""}`}
         onClick={handleLogoClick}
       >
-        <span className="logo-diamond" />
+        <img src={alertroadLogo} alt="AlertRoad logo" className="logo-image" />
         <span className="logo-text">ALERTROAD</span>
       </div>
 
