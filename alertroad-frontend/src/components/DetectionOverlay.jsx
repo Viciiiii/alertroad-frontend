@@ -10,23 +10,46 @@ const BUCKET_LABELS = {
   road_marking: "Marking",
 };
 
-// Finds the timeline entry covering the given playback time — same
-// segment boundaries VideoTimeline.jsx uses (each entry's timestamp up to
-// the next entry's timestamp), so the overlay and the colored bar always
-// agree about which moment is "active".
 // Finds the timeline entry closest in time to the given playback time,
 // rather than always the most recent PAST sample — with only ~1 sampled
 // frame per second, always-floor-to-previous meant boxes could visibly lag
 // up to ~1s behind right before the next sample landed. Nearest-match
-// instead centers that error: boxes can now appear up to ~0.5s early or
-// late, but never drift stale for a full second the way floor-matching did.
-function findActiveSegment(timeline, currentTime) {
+// instead centers that error: boxes can now appear up to half a sample
+// interval early or late, but never drift stale for a full interval the
+// way floor-matching did.
+//
+// maxGapSec caps HOW close "closest" has to actually be. Plain nearest-
+// match has no such limit — it always returns *some* entry, even for a
+// playback moment far from every real sample (before the first sample,
+// after the last one, or across an unusually large gap between two
+// samples). Without a cap, that stretches one real detection's box across
+// however much unsampled time sits next to it, which looks like a box
+// "stuck" on screen with nothing actually there. See getMaxMatchGapSec.
+function findActiveSegment(timeline, currentTime, maxGapSec) {
   if (!timeline || timeline.length === 0) return null;
-  return timeline.reduce((closest, entry) =>
+  const closest = timeline.reduce((closest, entry) =>
     Math.abs(entry.timestamp_sec - currentTime) < Math.abs(closest.timestamp_sec - currentTime)
       ? entry
       : closest
   );
+  if (Math.abs(closest.timestamp_sec - currentTime) > maxGapSec) return null;
+  return closest;
+}
+
+// Derives "how close counts as close enough" from the timeline's own
+// sample spacing, instead of a hardcoded number — sample intervals vary
+// (short videos sample ~1/sec, longer ones are spread coarser to cover
+// the full duration, see video_analysis.py). Half the average interval
+// is exactly the natural decision boundary nearest-match already uses
+// BETWEEN two neighboring samples (the midpoint); this just applies that
+// same boundary at the two open ends of the timeline too, where there's
+// no "next neighbor" to naturally stop an unbounded match.
+function getMaxMatchGapSec(timeline) {
+  if (!timeline || timeline.length < 2) return 1.5; // not enough samples to infer spacing
+  const first = timeline[0].timestamp_sec;
+  const last = timeline[timeline.length - 1].timestamp_sec;
+  const avgInterval = (last - first) / (timeline.length - 1);
+  return avgInterval / 2;
 }
 
 // The <video> element's own box can be bigger than the actual decoded
@@ -73,11 +96,15 @@ function getContainedRect(videoEl) {
 /**
  * Renders bounding boxes on top of a playing <video>, matching whichever
  * sampled frame in video_timeline is CLOSEST in time to the current
- * playback position (not necessarily the most recent past one).
+ * playback position (not necessarily the most recent past one) — but only
+ * if that closest sample is actually near enough (see getMaxMatchGapSec);
+ * otherwise no boxes are shown at all, rather than stretching a stale
+ * detection across a stretch of video that was never sampled.
  *
- * NOTE: boxes update at sampled-frame granularity (~1/sec, same as the
- * risk timeline bar), not literally every video frame — so a box can
- * appear/disappear up to ~0.5s before or after the exact real moment.
+ * NOTE: boxes update at sampled-frame granularity, not literally every
+ * video frame — sample spacing varies with video length (see
+ * video_analysis.py), so a box can appear/disappear up to roughly half a
+ * sample interval before or after the exact real moment.
  */
 function DetectionOverlay({ videoRef, timeline }) {
   const [rect, setRect] = useState(null);
@@ -93,8 +120,10 @@ function DetectionOverlay({ videoRef, timeline }) {
       setNativeSize({ w: videoEl.videoWidth, h: videoEl.videoHeight });
     };
 
+    const maxGapSec = getMaxMatchGapSec(timeline);
+
     const handleTimeUpdate = () => {
-      const seg = findActiveSegment(timeline, videoEl.currentTime);
+      const seg = findActiveSegment(timeline, videoEl.currentTime, maxGapSec);
       setActiveDetections(seg && seg.damage_detected ? seg.detections || [] : []);
     };
 
