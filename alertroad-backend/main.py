@@ -217,7 +217,17 @@ def create_scan(
 
    # Run the real AlertRoad detection pipeline: fine-tuned YOLO (damage) +
     # COCO YOLO (vehicles/traffic) + Random Forest (risk classification).
-    prediction = predict_road_risk(file_path)
+    try:
+        prediction = predict_road_risk(file_path)
+    except ValueError:
+        # predict_road_risk raises ValueError for unreadable/corrupt files
+        # (empty file, wrong format, corrupted video, etc). Clean up the
+        # orphaned upload and return a real error instead of a 500 crash.
+        os.remove(file_path)
+        raise HTTPException(
+            status_code=400,
+            detail="Could not process this file. Please upload a valid image or video.",
+        )
 
     new_scan = ScanResult(
         location=location,
