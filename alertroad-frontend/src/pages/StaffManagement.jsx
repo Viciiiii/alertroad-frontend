@@ -205,7 +205,11 @@ function StaffManagement() {
                         Reset Password
                       </button>
                       <button
-                        className="staff-row-delete"
+                        className={
+                          user.is_active === false
+                            ? "staff-row-enable"
+                            : "staff-row-delete"
+                        }
                         onClick={() => handleToggleStatus(user.id, user.is_active !== false)}
                       >
                         {user.is_active === false ? "Enable" : "Disable"}

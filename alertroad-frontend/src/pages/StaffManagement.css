@@ -122,8 +122,9 @@
   color: #16a34a;
 }
 
-.staff-row-disabled {
-  opacity: 0.6;
+.staff-row-disabled .staff-row-email,
+.staff-row-disabled .staff-row-role {
+  color: #9ca3af;
 }
 
 .staff-row-disabled .staff-row-status {
@@ -135,6 +136,16 @@
   background: none;
   border: 1px solid #e02424;
   color: #e02424;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.staff-row-enable {
+  background: none;
+  border: 1px solid #15803d;
+  color: #15803d;
   border-radius: 6px;
   padding: 6px 12px;
   font-size: 13px;
