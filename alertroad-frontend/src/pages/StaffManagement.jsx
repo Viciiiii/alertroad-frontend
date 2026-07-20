@@ -70,22 +70,27 @@ function StaffManagement() {
     }
   };
 
-  const handleDelete = async (userId) => {
+  const handleToggleStatus = async (userId, isCurrentlyActive) => {
+    const confirmMessage = isCurrentlyActive
+      ? "Disable this staff account? They won't be able to log in until re-enabled."
+      : "Re-enable this staff account?";
+    if (!window.confirm(confirmMessage)) return;
+
     try {
-      const response = await fetch(`${API_URL}/api/users/${userId}`, {
-        method: "DELETE",
+      const response = await fetch(`${API_URL}/api/users/${userId}/status`, {
+        method: "PUT",
         headers: authHeaders(),
       });
 
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
-        alert(data.detail || "Failed to delete account.");
+        alert(data.detail || "Failed to update account status.");
         return;
       }
 
       loadUsers();
     } catch (err) {
-      console.error("Delete failed:", err);
+      console.error("Status toggle failed:", err);
     }
   };
 
@@ -179,10 +184,16 @@ function StaffManagement() {
           ) : (
             <div className="staff-table">
               {users.map((user) => (
-                <div key={user.id} className="staff-row">
+                <div
+                  key={user.id}
+                  className={`staff-row${user.is_active === false ? " staff-row-disabled" : ""}`}
+                >
                   <span className="staff-row-email">{user.username}</span>
                   <span className="staff-row-role">
                     {user.is_admin ? "Admin" : "Staff"}
+                  </span>
+                  <span className="staff-row-status">
+                    {user.is_active === false ? "Disabled" : "Active"}
                   </span>
 
                   {!user.is_admin && (
@@ -195,9 +206,9 @@ function StaffManagement() {
                       </button>
                       <button
                         className="staff-row-delete"
-                        onClick={() => handleDelete(user.id)}
+                        onClick={() => handleToggleStatus(user.id, user.is_active !== false)}
                       >
-                        Remove
+                        {user.is_active === false ? "Enable" : "Disable"}
                       </button>
                     </>
                   )}

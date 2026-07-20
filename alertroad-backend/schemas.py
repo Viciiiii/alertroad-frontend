@@ -59,6 +59,7 @@ class UserSchema(BaseModel):
     id: int
     username: str
     is_admin: bool
+    is_active: bool
 
     class Config:
         from_attributes = True

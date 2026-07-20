@@ -58,6 +58,9 @@ def login(credentials: UserLogin, db: Session = Depends(get_db)):
     if not user or not verify_password(credentials.password, user.hashed_password):
         raise HTTPException(status_code=401, detail="Incorrect username or password")
 
+    if not user.is_active:
+        raise HTTPException(status_code=403, detail="This account has been disabled")
+
     token = create_access_token({"sub": user.username, "is_admin": user.is_admin})
     return {"access_token": token}
 
@@ -87,22 +90,26 @@ def create_staff(
 def list_users(db: Session = Depends(get_db), admin: User = Depends(get_current_admin)):
     return db.query(User).all()
 
-@app.delete("/api/users/{user_id}")
-def delete_staff(
+@app.put("/api/users/{user_id}/status", response_model=UserSchema)
+def toggle_staff_status(
     user_id: int,
     db: Session = Depends(get_db),
     admin: User = Depends(get_current_admin),
 ):
     if user_id == admin.id:
-        raise HTTPException(status_code=400, detail="You can't delete your own account")
+        raise HTTPException(status_code=400, detail="You can't disable your own account")
 
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    db.delete(user)
+    # Toggle rather than delete, so the record (and its history/audit trail)
+    # stays intact. Disabling immediately blocks login (see /api/login) and
+    # invalidates any token they're still holding (see get_current_user).
+    user.is_active = not user.is_active
     db.commit()
-    return {"message": "User deleted"}
+    db.refresh(user)
+    return user
 
 @app.put("/api/users/{user_id}/reset-password")
 def reset_password(

@@ -113,6 +113,24 @@
   text-transform: uppercase;
 }
 
+.staff-row-status {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.staff-row-disabled {
+  opacity: 0.6;
+}
+
+.staff-row-disabled .staff-row-status {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
 .staff-row-delete {
   background: none;
   border: 1px solid #e02424;
